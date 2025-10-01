@@ -1,0 +1,56 @@
+server:
+  port: 14443
+  forward-headers-strategy: NONE # Under main this cannot be enabled by default, because docker-compose.yml doesn't have another proxy in front of this application that would always set X-Forwarded-For header. X-Forwarded-For value that could be set outside of your own infrastructure, cannot be trusted.
+  ssl:
+    enabled: true
+    bundle: tls
+  tomcat:
+    accesslog:
+      enabled: false
+      prefix: localhost_access_log
+      suffix: .txt
+      max-days: 7 # Would save +1 files in folder for rotation
+      rotate: true
+      pattern: "%h %l %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %A %p %D \"%{X-Forwarded-For}i\" %{requestId}r"
+      encoding: UTF-8
+      locale: en
+
+spring:
+  application:
+    name: ocsp-crl-fallback
+  main:
+    banner-mode: off
+  ssl:
+    bundle:
+      pem:
+        tls:
+          keystore:
+            certificate: /etc/ocspcrl/secrets/tls/ocspcrl.cer.pem
+            private-key: /etc/ocspcrl/secrets/tls/ocspcrl.key.pem
+          # According to Spring Boot documentation, protocol should be specified under "options":
+          # https://docs.spring.io/spring-boot/how-to/webserver.html#howto.webserver.configure-ssl.bundles
+          # But actually it seems to be read from here instead.
+          protocol: TLSv1.3
+          options:
+            enabled-protocols:
+              - TLSv1.3
+            ciphers:
+              - TLS_AES_128_GCM_SHA256
+              - TLS_AES_256_GCM_SHA384
+              - TLS_CHACHA20_POLY1305_SHA256
+
+management:
+  info:
+    git:
+      mode: full
+    java:
+      enabled: true
+    os:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: configprops, env, health, info, prometheus
