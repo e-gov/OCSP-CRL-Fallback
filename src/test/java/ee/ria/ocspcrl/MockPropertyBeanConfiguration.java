@@ -35,4 +35,5 @@ public class MockPropertyBeanConfiguration {
         properties.put("commit.time", "commit.time-value");
         return new GitProperties(properties);
     }
+
 }

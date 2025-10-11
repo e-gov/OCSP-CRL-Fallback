@@ -13,7 +13,8 @@ import org.springframework.stereotype.Component;
 @Deprecated // Move to eID-Common library
 @Slf4j
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE) // Ensure that logging attributes are set as early as possible.
+@Order(Ordered.HIGHEST_PRECEDENCE) // Ensure that logging attributes are set as early as
+                                   // possible.
 public class ServiceVersionLoggingConfigurer {
 
     public ServiceVersionLoggingConfigurer(BuildProperties buildProperties, GitProperties gitProperties) {
@@ -33,4 +34,5 @@ public class ServiceVersionLoggingConfigurer {
         }
         return versionWithoutBuildNumber;
     }
+
 }

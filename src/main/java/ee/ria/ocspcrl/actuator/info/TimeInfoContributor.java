@@ -21,9 +21,8 @@ public class TimeInfoContributor implements InfoContributor {
 
     @Override
     public void contribute(Info.Builder builder) {
-        builder
-                .withDetail("startTime", getServiceStartTime())
-                .withDetail("currentTime", OffsetDateTime.now(ZoneOffset.UTC));
+        builder.withDetail("startTime", getServiceStartTime())
+            .withDetail("currentTime", OffsetDateTime.now(ZoneOffset.UTC));
     }
 
     private OffsetDateTime getServiceStartTime() {
@@ -35,4 +34,5 @@ public class TimeInfoContributor implements InfoContributor {
         Instant startTimeInstant = Instant.ofEpochMilli(startTimeEpochMilli);
         return OffsetDateTime.ofInstant(startTimeInstant, ZoneOffset.UTC);
     }
+
 }

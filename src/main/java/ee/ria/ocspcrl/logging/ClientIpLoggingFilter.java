@@ -15,7 +15,8 @@ import java.io.IOException;
 
 @Deprecated // Move to eID-Common library
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE) // Ensure that logging attributes are set as early as possible.
+@Order(Ordered.HIGHEST_PRECEDENCE) // Ensure that logging attributes are set as early as
+                                   // possible.
 public class ClientIpLoggingFilter extends OncePerRequestFilter {
 
     private static final String MDC_ATTRIBUTE_KEY_CLIENT_IP = "client.ip";
@@ -32,10 +33,12 @@ public class ClientIpLoggingFilter extends OncePerRequestFilter {
         }
         try {
             filterChain.doFilter(request, response);
-        } finally {
+        }
+        finally {
             if (ipAddressExists) {
                 MDC.remove(MDC_ATTRIBUTE_KEY_CLIENT_IP);
             }
         }
     }
+
 }

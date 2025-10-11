@@ -14,11 +14,11 @@ public class LogbackJsonFactoryDecorator implements JsonFactoryDecorator {
     @Override
     public JsonFactory decorate(JsonFactory factory) {
         ObjectMapper objectMapper = (ObjectMapper) factory.getCodec();
-        objectMapper
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .setDateFormat(new StdDateFormat().withColonInTimeZone(false))
-                .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL)
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .setDateFormat(new StdDateFormat().withColonInTimeZone(false))
+            .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL)
+            .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         return factory;
     }
+
 }
