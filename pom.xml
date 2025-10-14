@@ -29,9 +29,11 @@
         <imageName>${project.artifactId}:latest</imageName>
         <githubMirror>https://github.com</githubMirror>
 
+        <bouncycastle.version>1.82</bouncycastle.version>
         <elastic-apm.version>1.55.1</elastic-apm.version>
         <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
         <logstash-logback-encoder.version>8.1</logstash-logback-encoder.version>
+        <wiremock.version>3.13.1</wiremock.version>
     </properties>
 
     <dependencies><!-- Ordered by scope, groupId, artifactId. -->
@@ -74,13 +76,39 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <!-- Test dependencies -->
         <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>${wiremock.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -50,6 +50,19 @@ Build and run the application:
 | `spring.ssl.bundle.pem.tls.keystore.certificate` | Yes | PEM-formatted TLS certificate used by application's HTTPS endpoints. Can be provided by path to file or by inlining it either directly into YAML or by using Base64. See [the Spring Boot documentation](https://docs.spring.io/spring-boot/reference/features/ssl.html#features.ssl.pem) for details. |
 | `spring.ssl.bundle.pem.tls.keystore.private-key` | Yes | PEM-formatted TLS private key used by application's HTTPS endpoints. Can be provided by path to file or by inlining it either directly into YAML or by using Base64. See [the Spring Boot documentation](https://docs.spring.io/spring-boot/reference/features/ssl.html#features.ssl.pem) for details. |
 
+### Loading CRLs
+
+| Parameter        | Mandatory | Description, example |
+| ---------------- | ---------- | ---------------- |
+| `ocsp-crl-fallback.crl-loading-interval` | No | Interval for downloading updated CRL-s from remote sources. Default value is 30 seconds. [See the exact format from JavaDoc.](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/scheduling/annotation/Scheduled.html#fixedDelayString%28%29) Example: 60s |
+| `ocsp-crl-fallback.certificate-chains` | No | List of CRLs to download |
+| `ocsp-crl-fallback.certificate-chains[].name` | Yes | Name for the certificate chain. The downloaded CRL files will be named `<certificate-chain-name>.crl` |
+| `ocsp-crl-fallback.certificate-chains[].crl-download` | Yes | Data needed to download a specific CRL |
+| `ocsp-crl-fallback.certificate-chains[].crl-download.url` | Yes | URL to download the CRL from |
+| `ocsp-crl-fallback.certificate-chains[].crl-download.timeout` | No | Timeout for downloading the CRL. 30s by default. [See allowed formats here.](https://docs.spring.io/spring-boot/4.0/reference/features/external-config.html#features.external-config.typesafe-configuration-properties.conversion.durations) |
+| `ocsp-crl-fallback.certificate-chains[].crl-download.tls-truststore-bundle` | No | TLS truststore bundle with the HTTPS certificate for CRL download URL. This parameter refers to the bundles defined under `spring.ssl.bundle.pem.*` setting. It is not used for HTTP URLs. If this parameter is undefined and an HTTPS URL is specified for downloading the CRL, the default Java truststore is used instead. |
+| `ocsp-crl-fallback.tmp-path` | Yes | Temporary directory to download CRLs into. Example: /var/cache/ocspcrl/tmp |
+
 ## Non-pom.xml Licenses
 
 * [Maven Wrapper](https://maven.apache.org/wrapper/) - Apache 2.0 license

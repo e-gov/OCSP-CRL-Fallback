@@ -38,6 +38,12 @@ spring:
               - TLS_AES_128_GCM_SHA256
               - TLS_AES_256_GCM_SHA384
               - TLS_CHACHA20_POLY1305_SHA256
+        test_esteid2018-tls:
+          truststore:
+            certificate: /etc/ocspcrl/secrets/test_esteid2018-tls/c.sk.ee.cer.pem
+        test_esteid2025-tls:
+          truststore:
+            certificate: /etc/ocspcrl/secrets/test_esteid2025-tls/eidpki.ee.cer.pem
 
 management:
   info:
@@ -54,3 +60,18 @@ management:
     web:
       exposure:
         include: configprops, env, health, info, prometheus
+
+ocsp-crl-fallback:
+  crl-loading-interval: 30s
+  certificate-chains:
+    - name: test_esteid2018
+      crl-download:
+        url: https://c.sk.ee/test_esteid2018.crl
+        timeout: 30s
+        tls-truststore-bundle: test_esteid2018-tls
+    - name: test_esteid2025
+      crl-download:
+        url: https://crl-test.eidpki.ee/testESTEID2025.crl
+        timeout: 30s
+        tls-truststore-bundle: test_esteid2025-tls
+  tmp-path: /var/cache/ocspcrl/tmp
