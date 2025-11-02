@@ -70,9 +70,8 @@ public class CrlDownloadService {
     }
 
     private Path getTargetFilePath(String chainName) {
-        String targetDirPath = properties.tmpPath();
         String fileName = chainName + ".crl.tmp";
-        return Path.of(targetDirPath, fileName);
+        return properties.tmpPath().resolve(fileName);
     }
 
     private byte[] downloadFile(RestClient client) {

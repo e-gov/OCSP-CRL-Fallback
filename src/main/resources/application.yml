@@ -65,11 +65,13 @@ ocsp-crl-fallback:
   crl-loading-interval: 30s
   certificate-chains:
     - name: test_esteid2018
+      issuer-certificate: classpath:TEST_of_ESTEID2018.crt.pem
       crl-download:
         url: https://c.sk.ee/test_esteid2018.crl
         timeout: 30s
         tls-truststore-bundle: test_esteid2018-tls
     - name: test_esteid2025
+      issuer-certificate: classpath:testEEGovCA2025.crt.pem
       crl-download:
         url: https://crl-test.eidpki.ee/testESTEID2025.crl
         timeout: 30s

@@ -1,11 +1,16 @@
 package ee.ria.ocspcrl.util;
 
 import lombok.experimental.UtilityClass;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.openssl.PEMParser;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -77,5 +82,21 @@ public class CertificateUtils {
             defaultTrustStore.load(inputStream, defaultPassword);
         }
         return defaultTrustStore;
+    }
+
+    public static X509CertificateHolder loadPemCertificateFromClasspath(String path) {
+        URL resourceUrl = CertificateUtils.class.getResource(path);
+        if (resourceUrl == null) {
+            throw new IllegalArgumentException("Could not find certificate \"%s\" on classpath".formatted(path));
+        }
+        try (PEMParser pemParser = new PEMParser(new InputStreamReader(resourceUrl.openStream()))) {
+            Object parsedObject = pemParser.readObject();
+            if (!(parsedObject instanceof X509CertificateHolder certificate)) {
+                throw new IllegalArgumentException("Resource is not an X.509 certificate");
+            }
+            return certificate;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

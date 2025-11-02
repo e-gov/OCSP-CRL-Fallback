@@ -2,8 +2,8 @@ package ee.ria.ocspcrl.service.crl;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import ee.ria.ocspcrl.BaseIntegrationTest;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
-import ee.ria.ocspcrl.configuration.TestSchedulingConfiguration;
 import ee.ria.ocspcrl.service.FileWritingService;
 import ee.ria.ocspcrl.util.CertificateUtils;
 import lombok.SneakyThrows;
@@ -19,12 +19,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.restclient.autoconfigure.RestClientSsl;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -64,16 +61,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@SpringBootTest(
-    classes = {TestSchedulingConfiguration.class}
-)
-@ExtendWith(MockitoExtension.class)
-class CrlDownloadServiceTest {
+class CrlDownloadServiceTest extends BaseIntegrationTest {
 
     private static final String TEST_CHAIN_NAME = "test_esteid1111";
     private static final String STORES_PASSWORD = "password";
     private static final String CRL_BUNDLE_NAME = "test_esteid1111-tls";
-    private static final String TARGET_DIR_PATH = "/tmp/path";
+    private static final Path TARGET_DIR_PATH = Path.of("/tmp/path");
     private static final String RELATIVE_CRL_PATH = "/chain1.crl";
     private static final byte[] DUMMY_CRL_CONTENT = "This is a dummy CRL file.".getBytes(StandardCharsets.UTF_8);
 
@@ -132,7 +125,7 @@ class CrlDownloadServiceTest {
 
         crlDownloadService.downloadAllCrls();
 
-        Path expectedPath = Path.of(TARGET_DIR_PATH, TEST_CHAIN_NAME + ".crl.tmp");
+        Path expectedPath = TARGET_DIR_PATH.resolve(TEST_CHAIN_NAME + ".crl.tmp");
         verify(fileWritingService, times(1)).writeToFile(eq(expectedPath), aryEq(DUMMY_CRL_CONTENT));
     }
 
@@ -148,7 +141,7 @@ class CrlDownloadServiceTest {
 
         crlDownloadService.downloadAllCrls();
 
-        Path expectedPath = Path.of(TARGET_DIR_PATH, TEST_CHAIN_NAME + ".crl.tmp");
+        Path expectedPath = TARGET_DIR_PATH.resolve(TEST_CHAIN_NAME + ".crl.tmp");
         verify(fileWritingService, times(1)).writeToFile(eq(expectedPath), aryEq(DUMMY_CRL_CONTENT));
     }
 
@@ -180,7 +173,7 @@ class CrlDownloadServiceTest {
 
         crlDownloadService.downloadAllCrls();
 
-        Path expectedPath = Path.of(TARGET_DIR_PATH, TEST_CHAIN_NAME + ".crl.tmp");
+        Path expectedPath = TARGET_DIR_PATH.resolve(TEST_CHAIN_NAME + ".crl.tmp");
         verify(fileWritingService, times(1)).writeToFile(eq(expectedPath), aryEq(DUMMY_CRL_CONTENT));
     }
 
@@ -258,6 +251,7 @@ class CrlDownloadServiceTest {
         CrlConfigurationProperties.CertificateChain chain =
                 new CrlConfigurationProperties.CertificateChain(
                         TEST_CHAIN_NAME,
+                        null,
                         crlDownload
                 );
         return new CrlConfigurationProperties(
