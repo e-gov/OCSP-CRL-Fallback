@@ -28,3 +28,4 @@ ocsp-crl-fallback:
         url: https://crl-test.eidpki.ee/testESTEID2025.crl
         tls-truststore-bundle: test_esteid2025-tls
   tmp-path: target/tmp
+  crl-path: target/crl

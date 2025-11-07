@@ -76,6 +76,7 @@ class OcspControllerTest extends BaseIntegrationTest {
         CrlConfigurationProperties crlConfigurationProperties = new CrlConfigurationProperties(
                 Duration.ofMillis(1),
                 List.of(certificateChain),
+                mock(Path.class, ANSWER_THROW_EXCEPTION),
                 mock(Path.class, ANSWER_THROW_EXCEPTION));
         return new OcspController(
                 ocspService,

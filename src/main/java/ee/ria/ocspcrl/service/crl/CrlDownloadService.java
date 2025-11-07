@@ -3,26 +3,25 @@ package ee.ria.ocspcrl.service.crl;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties.CrlDownload;
-import ee.ria.ocspcrl.service.FileWritingService;
+import ee.ria.ocspcrl.gateway.CrlGateway;
+import ee.ria.ocspcrl.gateway.CrlGatewayFactory;
+import ee.ria.ocspcrl.service.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.restclient.autoconfigure.RestClientSsl;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
-import java.net.URL;
-import java.nio.file.Path;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CrlDownloadService {
 
+    private static final FileService.FileType FILE_TYPE = FileService.FileType.TEMP;
+
     private final CrlConfigurationProperties properties;
-    private final RestClientSsl restClientSsl;
-    private final FileWritingService fileWritingService;
+    private final FileService fileService;
+    private final CrlGatewayFactory crlGatewayFactory;
 
     public void downloadAllCrls() {
         for (var chain : properties.certificateChains()) {
@@ -37,46 +36,40 @@ public class CrlDownloadService {
     }
 
     private void downloadCrl(CertificateChain chain) throws IOException {
-        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory();
         CrlDownload crl = chain.crlDownload();
-        requestFactory.setReadTimeout(crl.timeout());
-        RestClient client = createRestClient(crl, requestFactory);
+        CrlGateway gateway = crlGatewayFactory.create(crl);
         log.info("Downloading file: {}", crl.url());
-        byte[] content = downloadFile(client);
-        if (content == null) {
+
+        CrlGateway.CrlResponse response = gateway.downloadFile(getRequestHeaders(chain.name()));
+
+        if (response instanceof CrlGateway.CrlFileNotModifiedResponse) {
+            log.info("CRL has no modifications: {}", chain.name());
+            return;
+        }
+
+        if (!(response instanceof CrlGateway.NewCrlFileResponse newCrlFileResponse)) {
+            throw new RuntimeException("Unexpected response type: " + response.getClass().getName());
+        }
+
+        if (newCrlFileResponse.crl() == null) {
             throw new RuntimeException("Received empty content from URL: " + crl.url());
         }
-        fileWritingService.writeToFile(getTargetFilePath(chain.name()), content);
+
+        fileService.serializeToFile(chain.name(), newCrlFileResponse, FILE_TYPE);
+        log.info("Downloaded file: {}", crl.url());
     }
 
-    private RestClient createRestClient(CrlDownload crl, JdkClientHttpRequestFactory requestFactory) {
-        URL url = crl.url();
-        // Check whether to use configured truststore bundle or Java's default truststore for HTTPS connections.
-        // HTTP connections ignore truststore settings.
-        if (crl.tlsTruststoreBundle() != null) {
-            return RestClient.builder()
-                .baseUrl(url.toString())
-                // TODO AUT-2429: Add timeout: we can't use `.requestFactory(requestFactory)` here as it would be
-                //        immediately overwritten by `.apply(restClientSsl.fromBundle()` which internally calls
-                //        `builder.requestFactory(...)`
-                .apply(restClientSsl.fromBundle(crl.tlsTruststoreBundle()))
-                .build();
-        } else {
-            return RestClient.builder()
-                .baseUrl(url.toString())
-                .requestFactory(requestFactory)
-                .build();
+    private CrlGateway.CrlCacheKey getRequestHeaders(String chainName) {
+        if (!fileService.shouldReadHeadersFromFile(chainName, FILE_TYPE)) {
+            return null;
+        }
+
+        try {
+            return fileService.deserializeFromFile(chainName, CrlGateway.CrlCacheKey.class, FILE_TYPE);
+        } catch (IOException e) {
+            log.error("Could not read headers from local file for chain {}", chainName);
+            return null;
         }
     }
 
-    private Path getTargetFilePath(String chainName) {
-        String fileName = chainName + ".crl.tmp";
-        return properties.tmpPath().resolve(fileName);
-    }
-
-    private byte[] downloadFile(RestClient client) {
-        return client.get()
-                .retrieve()
-                .body(byte[].class);
-    }
 }

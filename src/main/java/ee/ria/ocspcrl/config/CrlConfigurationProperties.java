@@ -20,7 +20,8 @@ import static java.util.stream.Collectors.toMap;
 public record CrlConfigurationProperties (
     @NotNull Duration crlLoadingInterval,
     List<CertificateChain> certificateChains,
-    @NotNull Path tmpPath
+    @NotNull Path tmpPath,
+    @NotNull Path crlPath
 ) {
 
     public List<CertificateChain> certificateChains() {

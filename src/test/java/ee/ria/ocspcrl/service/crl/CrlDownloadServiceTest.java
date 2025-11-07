@@ -1,10 +1,14 @@
 package ee.ria.ocspcrl.service.crl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import ee.ria.ocspcrl.BaseIntegrationTest;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
-import ee.ria.ocspcrl.service.FileWritingService;
+import ee.ria.ocspcrl.gateway.CrlGateway;
+import ee.ria.ocspcrl.gateway.CrlGatewayFactory;
+import ee.ria.ocspcrl.service.FileIoService;
+import ee.ria.ocspcrl.service.FileService;
 import ee.ria.ocspcrl.util.CertificateUtils;
 import lombok.SneakyThrows;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -21,7 +25,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.restclient.autoconfigure.RestClientSsl;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -61,12 +64,17 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+// TODO Reorganize tests.
 class CrlDownloadServiceTest extends BaseIntegrationTest {
+
+    public static final ObjectMapper jsonMapper = new ObjectMapper();
 
     private static final String TEST_CHAIN_NAME = "test_esteid1111";
     private static final String STORES_PASSWORD = "password";
     private static final String CRL_BUNDLE_NAME = "test_esteid1111-tls";
-    private static final Path TARGET_DIR_PATH = Path.of("/tmp/path");
+    private static final Path TMP_DIR_PATH = Path.of("/tmp/path");
+    private static final Path CRL_DIR_PATH = Path.of("/crl/path");
+
     private static final String RELATIVE_CRL_PATH = "/chain1.crl";
     private static final byte[] DUMMY_CRL_CONTENT = "This is a dummy CRL file.".getBytes(StandardCharsets.UTF_8);
 
@@ -75,10 +83,10 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
     private static SSLContext originalDefaultContext;
 
     @Mock
-    private FileWritingService fileWritingService;
+    private FileIoService fileIoService;
 
     @Autowired
-    private RestClientSsl restClientSsl;
+    private CrlGatewayFactory crlGatewayFactory;
 
     @DynamicPropertySource
     private static void dynamicProperties(DynamicPropertyRegistry registry) {
@@ -121,12 +129,13 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
                         .withBody(DUMMY_CRL_CONTENT)));
         URL url = getHttpUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, restClientSsl, fileWritingService);
+        FileService fileService = new FileService(fileIoService, properties);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
 
         crlDownloadService.downloadAllCrls();
 
-        Path expectedPath = TARGET_DIR_PATH.resolve(TEST_CHAIN_NAME + ".crl.tmp");
-        verify(fileWritingService, times(1)).writeToFile(eq(expectedPath), aryEq(DUMMY_CRL_CONTENT));
+        Path expectedPath = TMP_DIR_PATH.resolve(TEST_CHAIN_NAME + ".crl.tmp");
+        verify(fileIoService, times(1)).writeToFile(eq(expectedPath), aryEq(DUMMY_CRL_CONTENT));
     }
 
     @Test
@@ -137,12 +146,13 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
                         .withBody(DUMMY_CRL_CONTENT)));
         URL url = getHttpsUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, CRL_BUNDLE_NAME);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, restClientSsl, fileWritingService);
+        FileService fileService = new FileService(fileIoService, properties);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
 
         crlDownloadService.downloadAllCrls();
 
-        Path expectedPath = TARGET_DIR_PATH.resolve(TEST_CHAIN_NAME + ".crl.tmp");
-        verify(fileWritingService, times(1)).writeToFile(eq(expectedPath), aryEq(DUMMY_CRL_CONTENT));
+        Path expectedPath = TMP_DIR_PATH.resolve(TEST_CHAIN_NAME + ".crl.tmp");
+        verify(fileIoService, times(1)).writeToFile(eq(expectedPath), aryEq(DUMMY_CRL_CONTENT));
     }
 
     @Test
@@ -153,11 +163,12 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
                         .withBody(DUMMY_CRL_CONTENT)));
         URL url = getHttpsUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, restClientSsl, fileWritingService);
+        FileService fileService = new FileService(fileIoService, properties);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
 
         crlDownloadService.downloadAllCrls();
 
-        verify(fileWritingService, never()).writeToFile(any(), any());
+        verify(fileIoService, never()).writeToFile(any(), aryEq(DUMMY_CRL_CONTENT));
     }
 
     @Test
@@ -169,12 +180,52 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         CertificateUtils.addCertificatesFromSpecifiedTruststoreToDefaultTruststore(crlBundleTrustStorePath, STORES_PASSWORD);
         URL url = getHttpsUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, restClientSsl, fileWritingService);
+        FileService fileService = new FileService(fileIoService, properties);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
 
         crlDownloadService.downloadAllCrls();
 
-        Path expectedPath = TARGET_DIR_PATH.resolve(TEST_CHAIN_NAME + ".crl.tmp");
-        verify(fileWritingService, times(1)).writeToFile(eq(expectedPath), aryEq(DUMMY_CRL_CONTENT));
+        Path expectedPath = TMP_DIR_PATH.resolve(TEST_CHAIN_NAME + ".crl.tmp");
+        verify(fileIoService, times(1)).writeToFile(eq(expectedPath), aryEq(DUMMY_CRL_CONTENT));
+    }
+
+    @Test
+    void downloadAllCrls_fromHttpUrlNotModifiedResponseStatus_doesNotWriteToFile() throws IOException {
+        wireMockServer.stubFor(get(RELATIVE_CRL_PATH)
+                .willReturn(aResponse()
+                        .withStatus(304)
+                        .withBody(DUMMY_CRL_CONTENT)));
+        URL url = getHttpUrl(RELATIVE_CRL_PATH);
+        CrlConfigurationProperties properties = createConfigurationProperties(url, null);
+        FileService fileService = new FileService(fileIoService, properties);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
+
+        crlDownloadService.downloadAllCrls();
+
+        verify(fileIoService, never()).writeToFile(any(), any());
+    }
+
+    @Test
+    void downloadAllCrls_fromHttpUrl_writesHeadersToFile() throws IOException {
+        wireMockServer.stubFor(get(RELATIVE_CRL_PATH)
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("ETag", "\"33a64df551425fcc55e4d42a148795d9f25f89d4\"")
+                        .withHeader("Last-Modified", "Wed, 21 Oct 2015 07:28:00 GMT")
+                        .withBody(DUMMY_CRL_CONTENT)));
+        URL url = getHttpUrl(RELATIVE_CRL_PATH);
+        CrlConfigurationProperties properties = createConfigurationProperties(url, null);
+        FileService fileService = new FileService(fileIoService, properties);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
+
+        crlDownloadService.downloadAllCrls();
+
+        Path expectedPath = TMP_DIR_PATH.resolve(TEST_CHAIN_NAME + ".headers.tmp");
+        CrlGateway.CrlCacheKey crlCacheKey = new CrlGateway.CrlCacheKey(
+                "Wed, 21 Oct 2015 07:28:00 GMT",
+                "\"33a64df551425fcc55e4d42a148795d9f25f89d4\"");
+        byte[] keyBytes = jsonMapper.writeValueAsBytes(crlCacheKey);
+        verify(fileIoService, times(1)).writeToFile(eq(expectedPath), aryEq(keyBytes));
     }
 
     private static Path configureServerKeystore(Path tempDir, KeyPair keyPair, X509Certificate serverCertificate) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
@@ -226,6 +277,8 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
                 .keystorePath(keystorePath.toString())
                 .keystorePassword(STORES_PASSWORD)
                 .keyManagerPassword(STORES_PASSWORD)
+                // WireMock alters ETags: https://github.com/wiremock/wiremock/issues/2822, which breaks some tests.
+                .gzipDisabled(true)
         );
         wireMockServer.start();
     }
@@ -257,7 +310,8 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         return new CrlConfigurationProperties(
                 Duration.ofSeconds(30),
                 List.of(chain),
-                TARGET_DIR_PATH
+                TMP_DIR_PATH,
+                CRL_DIR_PATH
         );
     }
 }

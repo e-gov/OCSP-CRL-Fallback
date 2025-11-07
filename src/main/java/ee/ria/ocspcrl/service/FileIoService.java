@@ -9,10 +9,18 @@ import java.nio.file.Path;
 
 @Slf4j
 @Service
-public class FileWritingService {
+public class FileIoService {
 
     public void writeToFile(Path filePath, byte[] content) throws IOException {
         Files.createDirectories(filePath.getParent());
         Files.write(filePath, content);
+    }
+
+    public byte[] readFromFile(Path filePath) throws IOException {
+        return Files.readAllBytes(filePath);
+    }
+
+    public boolean exists(Path filePath) {
+        return Files.exists(filePath);
     }
 }
