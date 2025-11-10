@@ -18,7 +18,7 @@ import java.io.InputStream;
 public class OcspReqHttpMessageConverter extends AbstractHttpMessageConverter<OCSPReq> {
 
     public static final String OCSP_REQUEST_CONTENT_TYPE = "application/ocsp-request";
-    static final DataSize MAX_BODY_SIZE = DataSize.ofMegabytes(1);
+    static final DataSize MAX_BODY_SIZE = DataSize.ofKilobytes(10);
 
     public OcspReqHttpMessageConverter() {
         super(MediaType.valueOf(OCSP_REQUEST_CONTENT_TYPE));

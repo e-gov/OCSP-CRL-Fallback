@@ -1,5 +1,6 @@
 package ee.ria.ocspcrl.service;
 
+import ee.ria.ocspcrl.assertion.OCSPRespAssert;
 import ee.ria.ocspcrl.util.CertificateUtils;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -16,50 +17,79 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.ocsp.CertificateID;
 import org.bouncycastle.cert.ocsp.OCSPReq;
 import org.bouncycastle.cert.ocsp.OCSPReqBuilder;
+import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static ee.ria.ocspcrl.service.OcspService.createNonceExtension;
+import static ee.ria.ocspcrl.service.OcspService.getNonce;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.Mockito.when;
 
 @Slf4j
+@ExtendWith(MockitoExtension.class)
 class OcspServiceTest {
 
-    public static final X509CertificateHolder ISSUER_CERTIFICATE =
+    private static final X509CertificateHolder ISSUER_CERTIFICATE =
             CertificateUtils.loadPemCertificateFromClasspath("/certificates/eid/testEEGovCA2025.crt.pem");
-
-    private final OcspService ocspService = new OcspService();
+    private static final X509Certificate SIGNING_CERTIFICATE =
+            CertificateUtils.loadPemAsX509CertificateFromClasspath("/certificates/ocsp/ocsp.crt.pem");
+    private static final String SIGNING_CERTIFICATE_DN = "CN=test-ocsp";
+    private static final PrivateKey SIGNING_KEY =
+            CertificateUtils.loadECPrivateKeyFromClasspath("/certificates/ocsp/ocsp.key.pem");
+    private static final byte[] NONCE = "test-nonce-value".getBytes(StandardCharsets.UTF_8);
 
     private final DigestCalculator sha1DigestCalculator =
             new BcDigestCalculatorProvider().get(new AlgorithmIdentifier(OIWObjectIdentifiers.idSHA1));
 
+    @Mock
+    private OcspKeyService keyService;
+    private OcspService ocspService;
+
     OcspServiceTest() throws OperatorCreationException {}
+
+    @BeforeEach
+    void setUp() {
+        ocspService = new OcspService(keyService);
+    }
 
     @Nested
     class HandleRequest {
 
-        @SuppressWarnings("DataFlowIssue")
-        @Test
-        void whenNullOcspRequest_nullPointerExceptionThrown() {
-            assertThatNullPointerException()
-                    .isThrownBy(() -> ocspService.handleRequest(null, ISSUER_CERTIFICATE));
-        }
-
-        @SuppressWarnings("DataFlowIssue")
         @SneakyThrows
         @Test
-        void whenNullIssuerCertificate_nullPointerExceptionThrown() {
+        void whenNullOcspRequest_malformedRequestReturned() {
+            OCSPResp ocspResponse = ocspService.handleRequest(null, ISSUER_CERTIFICATE);
+
+            OCSPRespAssert.assertThat(ocspResponse)
+                    .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
+                    .hasNoResponseObject();
+        }
+
+        @SneakyThrows
+        @Test
+        void whenNullIssuerCertificate_malformedRequestReturned() {
             OCSPReq ocspRequest = new OCSPReqBuilder().build();
 
-            assertThatNullPointerException()
-                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, null));
+            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, null);
+
+            OCSPRespAssert.assertThat(ocspResponse)
+                    .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
+                    .hasNoResponseObject();
         }
 
         @SneakyThrows
@@ -67,7 +97,7 @@ class OcspServiceTest {
         /* Bouncy Castle does not provide a simple way to have a version other than `1`, so we need to do some trickery
          * in order to have a different version number.
          */
-        void whenInvalidOcspVersion_illegalArgumentExceptionThrown() {
+        void whenInvalidOcspVersion_malformedRequestReturned() {
             // Version numbers are offset, meaning using `0` would mean version `1`.
             ASN1Integer v2 = new ASN1Integer(1);
             OCSPReq validOcspRequest = new OCSPReqBuilder()
@@ -82,47 +112,60 @@ class OcspServiceTest {
             ReflectionTestUtils.setField(tbsRequest, "version", v2);
             OCSPReq ocspRequest = new OCSPReq(ocspRequestPrimitive);
 
-            assertThatIllegalArgumentException()
-                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE));
+            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE);
+
+            OCSPRespAssert.assertThat(ocspResponse)
+                    .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
+                    .hasNoResponseObject();
         }
 
         @SneakyThrows
         @Test
-        void whenEmptyRequestList_illegalArgumentExceptionThrown() {
+        void whenEmptyRequestList_malformedRequestReturned() {
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .build();
 
-            assertThatIllegalArgumentException()
-                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE));
+            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE);
+
+            OCSPRespAssert.assertThat(ocspResponse)
+                    .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
+                    .hasNoResponseObject();
         }
 
         @SneakyThrows
         @Test
-        void whenMultipleCertificateRequests_illegalArgumentExceptionThrown() {
+        void whenMultipleCertificateRequests_malformedRequestReturned() {
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
                     .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.TWO))
                     .build();
 
-            assertThatIllegalArgumentException()
-                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE));
+            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE);
+
+            OCSPRespAssert.assertThat(ocspResponse)
+                    .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
+                    .hasNoResponseObject();
         }
 
         @SneakyThrows
         @Test
-        void whenUnsupportedHashAlgorithm_illegalArgumentExceptionThrown() {
+        void whenUnsupportedHashAlgorithm_malformedRequestReturned() {
             DigestCalculator md5DigestCalculator =
                     new BcDigestCalculatorProvider().get(new AlgorithmIdentifier(PKCSObjectIdentifiers.md5));
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .addRequest(new CertificateID(md5DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
                     .build();
-            assertThatIllegalArgumentException()
-                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE));
+
+            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE);
+
+            OCSPRespAssert.assertThat(ocspResponse)
+                    .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
+                    .hasNoResponseObject();
         }
 
         @SneakyThrows
         @Test
-        void whenInvalidIssuerNameHash_illegalArgumentExceptionThrown() {
+        void whenInvalidIssuerNameHash_unknownStatusReturned() {
             CertID valid = new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE)
                     .toASN1Primitive();
             CertID actual = new CertID(
@@ -132,15 +175,25 @@ class OcspServiceTest {
                     valid.getSerialNumber());
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .addRequest(new CertificateID(actual))
+                    .setRequestExtensions(createNonceExtension(NONCE))
                     .build();
+            when(keyService.getOcspSigningCert()).thenReturn(SIGNING_CERTIFICATE);
+            when(keyService.getOcspSigningKey()).thenReturn(SIGNING_KEY);
 
-            assertThatIllegalArgumentException()
-                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE));
+            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE);
+
+            OCSPRespAssert.assertThat(ocspResponse)
+                    .hasResponseStatus(OCSPResp.SUCCESSFUL)
+                    .hasSigningCertificateSubject(SIGNING_CERTIFICATE_DN)
+                    .hasResponderIdByName(SIGNING_CERTIFICATE_DN)
+                    .hasProducedAtWithinLastHour()
+                    .hasNonce(getNonce(ocspRequest))
+                    .hasCertificateStatusUnknown();
         }
 
         @SneakyThrows
         @Test
-        void whenInvalidIssuerKeyHash_illegalArgumentExceptionThrown() {
+        void whenInvalidIssuerKeyHash_malformedRequestReturned() {
             CertID valid = new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE)
                     .toASN1Primitive();
             CertID actual = new CertID(
@@ -150,22 +203,95 @@ class OcspServiceTest {
                     valid.getSerialNumber());
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .addRequest(new CertificateID(actual))
+                    .setRequestExtensions(createNonceExtension(NONCE))
+                    .build();
+            when(keyService.getOcspSigningCert()).thenReturn(SIGNING_CERTIFICATE);
+            when(keyService.getOcspSigningKey()).thenReturn(SIGNING_KEY);
+
+            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE);
+
+            OCSPRespAssert.assertThat(ocspResponse)
+                    .hasResponseStatus(OCSPResp.SUCCESSFUL)
+                    .hasSigningCertificateSubject(SIGNING_CERTIFICATE_DN)
+                    .hasResponderIdByName(SIGNING_CERTIFICATE_DN)
+                    .hasProducedAtWithinLastHour()
+                    .hasNonce(getNonce(ocspRequest))
+                    .hasCertificateStatusUnknown();
+        }
+
+        @SneakyThrows
+        @Test
+        void whenNonceEmpty_malformedRequestReturned() {
+            OCSPReq ocspRequest = new OCSPReqBuilder()
+                    .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
+                    .setRequestExtensions(createNonceExtension(new byte[]{}))
                     .build();
 
-            assertThatIllegalArgumentException()
+            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE);
+
+            OCSPRespAssert.assertThat(ocspResponse)
+                    .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
+                    .hasNoResponseObject();
+        }
+
+        @SneakyThrows
+        @Test
+        void whenKeyServiceIsNull_NullPointerExceptionThrown() {
+            OCSPReq ocspRequest = new OCSPReqBuilder()
+                    .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
+                    .setRequestExtensions(createNonceExtension(NONCE))
+                    .build();
+
+            assertThatNullPointerException()
                     .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE));
         }
 
         @SneakyThrows
         @Test
-        void whenValidOcspRequest_nullReturned() {
+        void whenSigningKeyIsNull_NullPointerExceptionThrown() {
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
+                    .setRequestExtensions(createNonceExtension(NONCE))
+                    .build();
+            when(keyService.getOcspSigningCert()).thenReturn(SIGNING_CERTIFICATE);
+
+            assertThatExceptionOfType(OperatorCreationException.class)
+                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE))
+                    .withMessageContaining("cannot create signer: cannot identify EC private key");
+        }
+
+        @SneakyThrows
+        @Test
+        void whenSigningCertificateIsNull_NullPointerExceptionThrown() {
+            OCSPReq ocspRequest = new OCSPReqBuilder()
+                    .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
+                    .setRequestExtensions(createNonceExtension(NONCE))
                     .build();
 
-            assertThat(ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE))
-                    .isNull();
+            assertThatNullPointerException()
+                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE))
+                    .withMessageContaining("\"signingCert\" is null");
+        }
+
+        @SneakyThrows
+        @Test
+        void whenValidOcspRequest_SuccessfulOcspResponseReturned() {
+            OCSPReq ocspRequest = new OCSPReqBuilder()
+                    .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
+                    .setRequestExtensions(createNonceExtension(NONCE))
+                    .build();
+            when(keyService.getOcspSigningCert()).thenReturn(SIGNING_CERTIFICATE);
+            when(keyService.getOcspSigningKey()).thenReturn(SIGNING_KEY);
+
+            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE);
+
+            OCSPRespAssert.assertThat(ocspResponse)
+                    .hasResponseStatus(OCSPResp.SUCCESSFUL)
+                    .hasCertificateStatusGood()
+                    .hasSigningCertificateSubject(SIGNING_CERTIFICATE_DN)
+                    .hasResponderIdByName(SIGNING_CERTIFICATE_DN)
+                    .hasProducedAtWithinLastHour()
+                    .hasNonce(getNonce(ocspRequest));
         }
     }
-
 }

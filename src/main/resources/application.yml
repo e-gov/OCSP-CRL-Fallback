@@ -23,10 +23,18 @@ spring:
   ssl:
     bundle:
       pem:
+        ocsp:
+          key:
+            alias: keystore-entry-alias
+          keystore:
+            certificate: classpath:ocsp-certificate/ocsp.cer.pem
+            private-key: classpath:ocsp-certificate/ocsp.key.pem
+            verify-keys: true
         tls:
           keystore:
             certificate: /etc/ocspcrl/secrets/tls/ocspcrl.cer.pem
             private-key: /etc/ocspcrl/secrets/tls/ocspcrl.key.pem
+            verify-keys: true
           # According to Spring Boot documentation, protocol should be specified under "options":
           # https://docs.spring.io/spring-boot/how-to/webserver.html#howto.webserver.configure-ssl.bundles
           # But actually it seems to be read from here instead.

@@ -2,6 +2,11 @@ spring:
   ssl:
     bundle:
       pem:
+        ocsp:
+          keystore:
+            certificate: classpath:certificates/ocsp/ocsp.crt.pem
+            private-key: classpath:certificates/ocsp/ocsp.key.pem
+            verify-keys: true
         tls:
           keystore:
             certificate: classpath:certificates/tls/localhost.crt.pem
@@ -21,11 +26,13 @@ ocsp-crl-fallback:
       issuer-certificate: classpath:certificates/eid/TEST_of_ESTEID2018.crt.pem
       crl-download:
         url: https://c.sk.ee/test_esteid2018.crl
+        timeout: 5s
         tls-truststore-bundle: test_esteid2018-tls
     - name: test_esteid2025
       issuer-certificate: classpath:certificates/eid/testEEGovCA2025.crt.pem
       crl-download:
         url: https://crl-test.eidpki.ee/testESTEID2025.crl
+        timeout: 5s
         tls-truststore-bundle: test_esteid2025-tls
   tmp-path: target/tmp
   crl-path: target/crl

@@ -15,10 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import static ee.ria.ocspcrl.config.oscp.OcspReqHttpMessageConverter.OCSP_REQUEST_CONTENT_TYPE;
 import static ee.ria.ocspcrl.config.oscp.OcspRespHttpMessageConverter.OCSP_RESPONSE_CONTENT_TYPE;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.HttpStatus.NOT_IMPLEMENTED;
+import static org.springframework.http.HttpStatus.OK;
 
 @RequiredArgsConstructor
 @RestController
@@ -32,15 +31,12 @@ public class OcspController {
     public ResponseEntity<?> handleOcspRequest(@PathVariable String chainId, @RequestBody OCSPReq ocspReq) {
         CertificateChain certificateChain = crlConfigurationProperties.certificateChain(chainId);
         if (certificateChain == null) {
-            log.warn("Certificate chain \"{}\" not configured", chainId);
+            log.info("Certificate chain \"{}\" not configured", chainId);
             return ResponseEntity.status(NOT_FOUND).build();
         }
         try {
             OCSPResp result = ocspService.handleRequest(ocspReq, certificateChain.issuerCertificate());
-            return ResponseEntity.status(NOT_IMPLEMENTED).build();
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid OCSP request", e);
-            return ResponseEntity.status(BAD_REQUEST).build();
+            return new ResponseEntity<>(result.getEncoded(), OK);
         } catch (Exception e) {
             log.error("Error handling OCSP request", e);
             return ResponseEntity.status(INTERNAL_SERVER_ERROR).build();

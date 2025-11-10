@@ -35,11 +35,11 @@ public class OcspRespHttpMessageConverter extends AbstractHttpMessageConverter<O
     }
 
     @Override
-    protected void writeInternal(@NonNull OCSPResp ocspReq, @NonNull HttpOutputMessage outputMessage)
+    protected void writeInternal(@NonNull OCSPResp ocspResp, @NonNull HttpOutputMessage outputMessage)
             throws IOException, HttpMessageNotWritableException {
         byte[] encoded;
         try {
-            encoded = ocspReq.getEncoded();
+            encoded = ocspResp.getEncoded();
         } catch (IOException e) {
             throw new HttpMessageNotWritableException("Failed to encode OCSP response", e);
         }

@@ -6,6 +6,7 @@ import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties.CrlDownload;
 import ee.ria.ocspcrl.service.OcspService;
 import ee.ria.ocspcrl.util.CertificateUtils;
+import io.restassured.response.Response;
 import lombok.SneakyThrows;
 import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
@@ -13,6 +14,8 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.ocsp.CertificateID;
 import org.bouncycastle.cert.ocsp.OCSPReq;
 import org.bouncycastle.cert.ocsp.OCSPReqBuilder;
+import org.bouncycastle.cert.ocsp.OCSPResp;
+import org.bouncycastle.cert.ocsp.OCSPRespBuilder;
 import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
@@ -33,16 +36,18 @@ import static ee.ria.ocspcrl.config.oscp.OcspRespHttpMessageConverter.OCSP_RESPO
 import static ee.ria.ocspcrl.util.MockitoUtil.ANSWER_THROW_EXCEPTION;
 import static io.restassured.RestAssured.given;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED;
 import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.HttpStatus.NOT_IMPLEMENTED;
+import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE;
 import static org.springframework.http.MediaType.ALL_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -69,7 +74,7 @@ class OcspControllerTest extends BaseIntegrationTest {
                 CERTIFICATE_CHAIN_NAME,
                 ISSUER_CERTIFICATE,
                 new CrlDownload(
-                        URI.create("https://ria.ee/esteid2025.crl").toURL(),
+                        URI.create("https://example.org/example.crl").toURL(),
                         Duration.ofMillis(1),
                         "<not-used>")
         );
@@ -153,8 +158,8 @@ class OcspControllerTest extends BaseIntegrationTest {
 
         @Test
         @SneakyThrows
-        void whenServiceCallFails_badRequestReturned() {
-            doThrow(new IllegalArgumentException("OcspService: invalid OCSP request"))
+        void whenServiceCallFails_internalErrorReturned() {
+            doThrow(new Exception("OcspService: failed to process OCSP request"))
                     .when(ocspService).handleRequest(any(), any());
 
             given()
@@ -164,39 +169,53 @@ class OcspControllerTest extends BaseIntegrationTest {
                     .body(validOcspRequest().getEncoded())
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
                     .then()
-                    .statusCode(BAD_REQUEST.value());
+                    .statusCode(INTERNAL_SERVER_ERROR.value());
         }
 
         @SneakyThrows
         @Test
-        void whenServiceCallSucceeds_notImplementedReturned() {
-            doReturn(null)
+        void whenServiceCallSucceeds_okReturned() {
+            OCSPResp expectedResponse = new OCSPRespBuilder().build(OCSPRespBuilder.SUCCESSFUL, null);
+            doReturn(expectedResponse)
                     .when(ocspService).handleRequest(any(), any());
 
-            given()
+            Response actualResponse = given()
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, OCSP_RESPONSE_CONTENT_TYPE)
                     .when()
                     .body(validOcspRequest().getEncoded())
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
                     .then()
-                    .statusCode(NOT_IMPLEMENTED.value());
+                    .statusCode(OK.value())
+                    .header(HttpHeaders.CONTENT_TYPE, OCSP_RESPONSE_CONTENT_TYPE)
+                    .header(HttpHeaders.CONTENT_LENGTH, "5")
+                    .extract()
+                    .response();
+
+            assertArrayEquals(expectedResponse.getEncoded(), actualResponse.asByteArray());
         }
 
         @SneakyThrows
         @Test
-        void whenAcceptHeaderValueIsAny_notImplementedReturned() {
-            doReturn(null)
+        void whenAcceptHeaderValueIsAny_okReturned() {
+            OCSPResp expectedResponse = new OCSPRespBuilder().build(OCSPRespBuilder.SUCCESSFUL, null);
+            doReturn(expectedResponse)
                     .when(ocspService).handleRequest(any(), any());
 
-            given()
+            Response actualResponse = given()
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, ALL_VALUE)
                     .when()
                     .body(validOcspRequest().getEncoded())
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
                     .then()
-                    .statusCode(NOT_IMPLEMENTED.value());
+                    .statusCode(OK.value())
+                    .header(HttpHeaders.CONTENT_TYPE, OCSP_RESPONSE_CONTENT_TYPE)
+                    .header(HttpHeaders.CONTENT_LENGTH, "5")
+                    .extract()
+                    .response();
+
+            assertArrayEquals(expectedResponse.getEncoded(), actualResponse.asByteArray());
         }
 
     }

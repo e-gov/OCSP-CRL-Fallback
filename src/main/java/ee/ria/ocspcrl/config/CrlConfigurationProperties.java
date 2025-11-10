@@ -1,5 +1,6 @@
 package ee.ria.ocspcrl.config;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -19,7 +20,7 @@ import static java.util.stream.Collectors.toMap;
 @ConfigurationProperties("ocsp-crl-fallback")
 public record CrlConfigurationProperties (
     @NotNull Duration crlLoadingInterval,
-    List<CertificateChain> certificateChains,
+    List<@Valid CertificateChain> certificateChains,
     @NotNull Path tmpPath,
     @NotNull Path crlPath
 ) {
@@ -40,7 +41,7 @@ public record CrlConfigurationProperties (
     public record CertificateChain(
             @Pattern(regexp = "\\w[\\w\\-.]*") String name,
             @NotNull X509CertificateHolder issuerCertificate,
-            @NotNull CrlDownload crlDownload
+            @NotNull @Valid CrlDownload crlDownload
     ) {}
 
     public record CrlDownload(
