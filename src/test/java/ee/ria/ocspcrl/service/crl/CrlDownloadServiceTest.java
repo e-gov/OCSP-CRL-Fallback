@@ -88,6 +88,9 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
     @Autowired
     private CrlGatewayFactory crlGatewayFactory;
 
+    @Mock
+    private CrlValidationService crlValidationService;
+
     @DynamicPropertySource
     private static void dynamicProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.ssl.bundle.jks." + CRL_BUNDLE_NAME + ".truststore.location",
@@ -130,7 +133,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
 
         crlDownloadService.downloadAllCrls();
 
@@ -147,7 +150,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpsUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, CRL_BUNDLE_NAME);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
 
         crlDownloadService.downloadAllCrls();
 
@@ -164,7 +167,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpsUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
 
         crlDownloadService.downloadAllCrls();
 
@@ -181,7 +184,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpsUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
 
         crlDownloadService.downloadAllCrls();
 
@@ -198,7 +201,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
 
         crlDownloadService.downloadAllCrls();
 
@@ -216,7 +219,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
 
         crlDownloadService.downloadAllCrls();
 

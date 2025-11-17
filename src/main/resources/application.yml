@@ -52,6 +52,12 @@ spring:
         test_esteid2025-tls:
           truststore:
             certificate: /etc/ocspcrl/secrets/test_esteid2025-tls/eidpki.ee.cer.pem
+        test_esteid2018-crl:
+          truststore:
+            certificate: /etc/ocspcrl/secrets/eid/TEST_of_ESTEID2018.crt.pem
+        test_esteid2025-crl:
+          truststore:
+            certificate: /etc/ocspcrl/secrets/eid/testEEGovCA2025.crt.pem
 
 management:
   info:
@@ -73,16 +79,19 @@ ocsp-crl-fallback:
   crl-loading-interval: 30s
   certificate-chains:
     - name: test_esteid2018
+      # TODO Convert this to issuer-truststore-bundle (same with test_esteid2025)
       issuer-certificate: file:/etc/ocspcrl/secrets/eid/TEST_of_ESTEID2018.crt.pem
       crl-download:
         url: https://c.sk.ee/test_esteid2018.crl
         timeout: 30s
         tls-truststore-bundle: test_esteid2018-tls
+        crl-truststore-bundle: test_esteid2018-crl
     - name: test_esteid2025
       issuer-certificate: file:/etc/ocspcrl/secrets/eid/testEEGovCA2025.crt.pem
       crl-download:
         url: https://crl-test.eidpki.ee/testESTEID2025.crl
         timeout: 30s
         tls-truststore-bundle: test_esteid2025-tls
+        crl-truststore-bundle: test_esteid2025-crl
   tmp-path: /var/cache/ocspcrl/tmp
   crl-path: /var/cache/ocspcrl/crl

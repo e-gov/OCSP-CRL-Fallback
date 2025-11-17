@@ -48,6 +48,14 @@ public class FileService {
         return headersFileExists && crlFileExists;
     }
 
+    // TODO AUT-2455 Should we also move the headers? Should the input be byte[]?
+    public void moveValidCrl(String chainName) throws IOException {
+        Path source = getCrlTargetFilePath(chainName, FileType.TEMP);
+        Path target = getCrlTargetFilePath(chainName, FileType.VALIDATED);
+
+        fileIoService.move(source, target);
+    }
+
     private Path getCrlTargetFilePath(String chainName, FileType fileType) {
         if (fileType == FileType.TEMP) {
             return getCrlTmpTargetFilePath(chainName);

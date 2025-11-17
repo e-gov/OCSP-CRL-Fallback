@@ -22,6 +22,7 @@ public class CrlDownloadService {
     private final CrlConfigurationProperties properties;
     private final FileService fileService;
     private final CrlGatewayFactory crlGatewayFactory;
+    private final CrlValidationService crlValidationService;
 
     public void downloadAllCrls() {
         for (var chain : properties.certificateChains()) {
@@ -57,6 +58,8 @@ public class CrlDownloadService {
 
         fileService.serializeToFile(chain.name(), newCrlFileResponse, FILE_TYPE);
         log.info("Downloaded file: {}", crl.url());
+
+        crlValidationService.validateCrl(chain.name(), newCrlFileResponse.crl());
     }
 
     private CrlGateway.CrlCacheKey getRequestHeaders(String chainName) {
