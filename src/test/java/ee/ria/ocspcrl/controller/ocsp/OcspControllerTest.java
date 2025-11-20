@@ -160,7 +160,7 @@ class OcspControllerTest extends BaseIntegrationTest {
         @SneakyThrows
         void whenServiceCallFails_internalErrorReturned() {
             doThrow(new Exception("OcspService: failed to process OCSP request"))
-                    .when(ocspService).handleRequest(any(), any());
+                    .when(ocspService).handleRequest(any(), any(), any());
 
             given()
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
@@ -177,7 +177,7 @@ class OcspControllerTest extends BaseIntegrationTest {
         void whenServiceCallSucceeds_okReturned() {
             OCSPResp expectedResponse = new OCSPRespBuilder().build(OCSPRespBuilder.SUCCESSFUL, null);
             doReturn(expectedResponse)
-                    .when(ocspService).handleRequest(any(), any());
+                    .when(ocspService).handleRequest(any(), any(), any());
 
             Response actualResponse = given()
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
@@ -200,7 +200,7 @@ class OcspControllerTest extends BaseIntegrationTest {
         void whenAcceptHeaderValueIsAny_okReturned() {
             OCSPResp expectedResponse = new OCSPRespBuilder().build(OCSPRespBuilder.SUCCESSFUL, null);
             doReturn(expectedResponse)
-                    .when(ocspService).handleRequest(any(), any());
+                    .when(ocspService).handleRequest(any(), any(), any());
 
             Response actualResponse = given()
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)

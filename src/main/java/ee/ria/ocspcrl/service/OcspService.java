@@ -1,8 +1,13 @@
 package ee.ria.ocspcrl.service;
 
 import ee.ria.ocspcrl.exception.CertificateChainMismatchException;
+import ee.ria.ocspcrl.exception.CertificateRevokedException;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1Enumerated;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.DEROctetString;
@@ -10,8 +15,11 @@ import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
 import org.bouncycastle.asn1.ocsp.OCSPResponseStatus;
 import org.bouncycastle.asn1.ocsp.ResponderID;
 import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
+import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
+import org.bouncycastle.cert.X509CRLEntryHolder;
+import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.ocsp.BasicOCSPResp;
 import org.bouncycastle.cert.ocsp.BasicOCSPRespBuilder;
@@ -23,6 +31,7 @@ import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.cert.ocsp.OCSPRespBuilder;
 import org.bouncycastle.cert.ocsp.Req;
 import org.bouncycastle.cert.ocsp.RespID;
+import org.bouncycastle.cert.ocsp.RevokedStatus;
 import org.bouncycastle.cert.ocsp.UnknownStatus;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
@@ -33,7 +42,11 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
@@ -44,41 +57,75 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OcspService {
 
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     private final OcspKeyService keyService;
     private final DigestCalculatorProvider digestCalculatorProvider = new BcDigestCalculatorProvider();
 
     @SuppressWarnings({"DataFlowIssue"})
-    public OCSPResp handleRequest(OCSPReq ocspReq, X509CertificateHolder issuerCertificate) throws Exception {
-        Req certRequest = null;
-        byte[] nonce = null;
+    public OCSPResp handleRequest(OCSPReq ocspReq, X509CertificateHolder issuerCertificate, String chainName) throws Exception {
+        Req certRequest;
+        byte[] nonce;
+
         try {
             validateRequestVersion(ocspReq);
             certRequest = getCertificateRequest(ocspReq);
             nonce = getNonce(ocspReq);
             validateNonce(nonce);
-            validateIssuer(certRequest, issuerCertificate);
-        } catch (CertificateChainMismatchException e) {
-            // CertificateChainMismatchException is only thrown from validateIssuer() method, therefore
-            // we can be sure that certRequest and nonce values have been already been assigned.
-            return createSignedOcspResponse(certRequest.getCertID(), nonce, new UnknownStatus());
         } catch (Exception e) {
             // For request parsing exceptions, malformed request is returned with HTTP 200
             log.info("Invalid OCSP request", e);
             return createResponseForMalformedRequest();
         }
+
+        X509CRLHolder crlHolder = getCrlHolder(chainName);;
+        if (crlHolder == null) {
+            return createSignedOcspResponse(certRequest.getCertID(), nonce, null, OCSPResponseStatus.TRY_LATER, null);
+        }
+
+        try {
+            validateIssuer(certRequest, issuerCertificate);
+        } catch (CertificateChainMismatchException e) {
+            return createSignedOcspResponse(certRequest.getCertID(), nonce, new UnknownStatus(), OCSPResponseStatus.SUCCESSFUL, crlHolder);
+        } catch (Exception e) {
+            // For request parsing exceptions, malformed request is returned with HTTP 200
+            log.info("Invalid OCSP request", e);
+            return createResponseForMalformedRequest();
+        }
+
+        try {
+            ensureCertificateNotInCrl(certRequest.getCertID(), crlHolder);
+        } catch (CertificateRevokedException e) {
+            RevokedStatus revokedStatus = getRevokedStatus(e);
+            return createSignedOcspResponse(certRequest.getCertID(), nonce, revokedStatus, OCSPResponseStatus.SUCCESSFUL, crlHolder);
+        }
+
         // All the other exceptions are handled in the controller by returning HTTP 500
-        return createSignedOcspResponse(certRequest.getCertID(), nonce, CertificateStatus.GOOD);
+        return createSignedOcspResponse(certRequest.getCertID(), nonce, CertificateStatus.GOOD, OCSPResponseStatus.SUCCESSFUL, crlHolder);
     }
 
-    private OCSPResp createSignedOcspResponse(CertificateID certId, byte[] nonce, CertificateStatus status) throws Exception {
+    private OCSPResp createSignedOcspResponse(CertificateID certId, byte[] nonce, CertificateStatus certificateStatus, int ocspResponseStatus, X509CRLHolder crlHolder) throws Exception {
         X509CertificateHolder signingCertHolder = getSigningCertificateHolder();
         ResponderID responderID = new ResponderID(signingCertHolder.getSubject());
         RespID respID = new RespID(responderID);
         BasicOCSPRespBuilder signableResponseBuilder = new BasicOCSPRespBuilder(respID);
         signableResponseBuilder.setResponseExtensions(createNonceExtension(nonce));
-        signableResponseBuilder.addResponse(certId, status);
+        addRevocationInformation(signableResponseBuilder, certId, certificateStatus, crlHolder);
         BasicOCSPResp basicResp = signBasicResponse(signingCertHolder, signableResponseBuilder);
-        return wrapIntoOcspResp(basicResp);
+        return wrapIntoOcspResp(basicResp, ocspResponseStatus);
+    }
+
+    private void addRevocationInformation(BasicOCSPRespBuilder signableResponseBuilder, CertificateID certId,
+                                          CertificateStatus certificateStatus, X509CRLHolder crlHolder) {
+        if (crlHolder == null) {
+            signableResponseBuilder.addResponse(certId, certificateStatus);
+        } else {
+            Date thisUpdate = crlHolder.getThisUpdate();
+            Date nextUpdate = crlHolder.getNextUpdate();
+            signableResponseBuilder.addResponse(certId, certificateStatus, thisUpdate, nextUpdate);
+        }
     }
 
     private static void validateNonce(byte[] nonce) {
@@ -166,9 +213,9 @@ public class OcspService {
                 .build(signingKey);
     }
 
-    private static OCSPResp wrapIntoOcspResp(BasicOCSPResp basicResp) throws OCSPException {
+    private static OCSPResp wrapIntoOcspResp(BasicOCSPResp basicResp, int ocspResponseStatus) throws OCSPException {
         OCSPRespBuilder builder = new OCSPRespBuilder();
-        return builder.build(OCSPResponseStatus.SUCCESSFUL, basicResp);
+        return builder.build(ocspResponseStatus, basicResp);
     }
 
     private BasicOCSPResp signBasicResponse(
@@ -182,5 +229,48 @@ public class OcspService {
                 certificateChain,
                 producedAt
         );
+    }
+
+    private X509CRLHolder getCrlHolder(String chainName) {
+        // TODO AUT-2455 Replace with an actual method (from CrlCache?)
+        return getPreviousCrl(chainName);
+    }
+
+    @SneakyThrows(IOException.class)
+    private X509CRLHolder getPreviousCrl(String chainName) {
+        Path previousValidatedCrlPath = Path.of("/var/cache/ocspcrl/crl/" + chainName + ".crl");
+
+        if (Files.notExists(previousValidatedCrlPath)) {
+            return null;
+        }
+
+        byte[] previousCrlBytes = Files.readAllBytes(previousValidatedCrlPath);
+        return new X509CRLHolder(previousCrlBytes);
+    }
+
+    private void ensureCertificateNotInCrl(CertificateID certId, @NotNull X509CRLHolder crlHolder) {
+        BigInteger serialNumber = certId.getSerialNumber();
+
+        X509CRLEntryHolder revokedCertificate = crlHolder.getRevokedCertificate(serialNumber);
+
+        if (revokedCertificate == null) {
+            return;
+        }
+
+        Date revocationTime = revokedCertificate.getRevocationDate();
+        Extension reasonCodeExtension = revokedCertificate.getExtension(Extension.reasonCode);
+        ASN1Encodable asnReasonCode = reasonCodeExtension.getParsedValue();
+        Integer revocationReason = null;
+        if (asnReasonCode instanceof ASN1Enumerated enumerated) {
+            revocationReason = enumerated.intValueExact();
+        }
+        throw new CertificateRevokedException(revocationTime, revocationReason);
+    }
+
+    private RevokedStatus getRevokedStatus(CertificateRevokedException e) {
+        if (e.getRevocationReason() == null) {
+            return new RevokedStatus(e.getRevocationTime());
+        }
+        return new RevokedStatus(e.getRevocationTime(), e.getRevocationReason());
     }
 }

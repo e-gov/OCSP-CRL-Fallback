@@ -35,7 +35,8 @@ public class OcspController {
             return ResponseEntity.status(NOT_FOUND).build();
         }
         try {
-            OCSPResp result = ocspService.handleRequest(ocspReq, certificateChain.issuerCertificate());
+            OCSPResp result = ocspService.handleRequest(ocspReq,
+                    certificateChain.issuerCertificate(), certificateChain.name());
             return new ResponseEntity<>(result.getEncoded(), OK);
         } catch (Exception e) {
             log.error("Error handling OCSP request", e);
