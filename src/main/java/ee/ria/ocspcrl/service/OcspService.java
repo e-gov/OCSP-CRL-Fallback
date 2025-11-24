@@ -1,10 +1,10 @@
 package ee.ria.ocspcrl.service;
 
+import ee.ria.ocspcrl.CrlCache;
 import ee.ria.ocspcrl.exception.CertificateChainMismatchException;
 import ee.ria.ocspcrl.exception.CertificateRevokedException;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Enumerated;
@@ -43,8 +43,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateEncodingException;
@@ -62,6 +60,7 @@ public class OcspService {
     }
 
     private final OcspKeyService keyService;
+    private final CrlCache crlCache;
     private final DigestCalculatorProvider digestCalculatorProvider = new BcDigestCalculatorProvider();
 
     @SuppressWarnings({"DataFlowIssue"})
@@ -80,19 +79,19 @@ public class OcspService {
             return createResponseForMalformedRequest();
         }
 
-        X509CRLHolder crlHolder = getCrlHolder(chainName);;
-        if (crlHolder == null) {
-            return createSignedOcspResponse(certRequest.getCertID(), nonce, null, OCSPResponseStatus.TRY_LATER, null);
-        }
-
         try {
             validateIssuer(certRequest, issuerCertificate);
         } catch (CertificateChainMismatchException e) {
-            return createSignedOcspResponse(certRequest.getCertID(), nonce, new UnknownStatus(), OCSPResponseStatus.SUCCESSFUL, crlHolder);
+            return createSignedOcspResponse(certRequest.getCertID(), nonce, new UnknownStatus(), OCSPResponseStatus.SUCCESSFUL, null);
         } catch (Exception e) {
             // For request parsing exceptions, malformed request is returned with HTTP 200
             log.info("Invalid OCSP request", e);
             return createResponseForMalformedRequest();
+        }
+
+        X509CRLHolder crlHolder = crlCache.getCrl(chainName);
+        if (crlHolder == null) {
+            return createSignedOcspResponse(certRequest.getCertID(), nonce, null, OCSPResponseStatus.TRY_LATER, null);
         }
 
         try {
@@ -229,23 +228,6 @@ public class OcspService {
                 certificateChain,
                 producedAt
         );
-    }
-
-    private X509CRLHolder getCrlHolder(String chainName) {
-        // TODO AUT-2455 Replace with an actual method (from CrlCache?)
-        return getPreviousCrl(chainName);
-    }
-
-    @SneakyThrows(IOException.class)
-    private X509CRLHolder getPreviousCrl(String chainName) {
-        Path previousValidatedCrlPath = Path.of("/var/cache/ocspcrl/crl/" + chainName + ".crl");
-
-        if (Files.notExists(previousValidatedCrlPath)) {
-            return null;
-        }
-
-        byte[] previousCrlBytes = Files.readAllBytes(previousValidatedCrlPath);
-        return new X509CRLHolder(previousCrlBytes);
     }
 
     private void ensureCertificateNotInCrl(CertificateID certId, @NotNull X509CRLHolder crlHolder) {

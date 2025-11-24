@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import ee.ria.ocspcrl.BaseIntegrationTest;
+import ee.ria.ocspcrl.CrlCache;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.gateway.CrlGateway;
 import ee.ria.ocspcrl.gateway.CrlGatewayFactory;
@@ -91,6 +92,9 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
     @Mock
     private CrlValidationService crlValidationService;
 
+    @Mock
+    private CrlCache crlCache;
+
     @DynamicPropertySource
     private static void dynamicProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.ssl.bundle.jks." + CRL_BUNDLE_NAME + ".truststore.location",
@@ -133,7 +137,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService, crlCache);
 
         crlDownloadService.downloadAllCrls();
 
@@ -150,7 +154,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpsUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, CRL_BUNDLE_NAME);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService, crlCache);
 
         crlDownloadService.downloadAllCrls();
 
@@ -167,7 +171,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpsUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService, crlCache);
 
         crlDownloadService.downloadAllCrls();
 
@@ -184,7 +188,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpsUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService, crlCache);
 
         crlDownloadService.downloadAllCrls();
 
@@ -201,7 +205,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService, crlCache);
 
         crlDownloadService.downloadAllCrls();
 
@@ -219,7 +223,7 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         URL url = getHttpUrl(RELATIVE_CRL_PATH);
         CrlConfigurationProperties properties = createConfigurationProperties(url, null);
         FileService fileService = new FileService(fileIoService, properties);
-        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService);
+        CrlDownloadService crlDownloadService = new CrlDownloadService(properties, fileService, crlGatewayFactory, crlValidationService, crlCache);
 
         crlDownloadService.downloadAllCrls();
 

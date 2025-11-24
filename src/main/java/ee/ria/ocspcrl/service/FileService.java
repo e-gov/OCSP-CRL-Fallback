@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.gateway.CrlGateway;
 import lombok.RequiredArgsConstructor;
+import org.bouncycastle.cert.X509CRLHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -27,15 +28,22 @@ public class FileService {
         serializeToFile(headerPath, response.crlCacheKey());
     }
 
-    public <T> T deserializeFromFile(String chainName, Class<T> clazz, FileType fileType) throws IOException {
-        Path filePath = null;
-        if (clazz == CrlGateway.CrlCacheKey.class) {
-            filePath = getHeadersTargetFilePath(chainName, fileType);
-        }
+    public CrlGateway.CrlCacheKey deserializeCrlCacheKeyFromFile(String chainName, FileType fileType)
+            throws IOException {
+        Path filePath = getHeadersTargetFilePath(chainName, fileType);
         if (filePath == null) {
             return null;
         }
-        return deserializeFromFile(filePath, clazz);
+        return deserializeFromFile(filePath, CrlGateway.CrlCacheKey.class);
+    }
+
+    public X509CRLHolder deserializeCrlFromFile(String chainName, FileType fileType) throws IOException {
+        Path filePath = getCrlTargetFilePath(chainName, fileType);
+        if (filePath == null) {
+            return null;
+        }
+        byte[] crlBytes = fileIoService.readFromFile(filePath);
+        return new X509CRLHolder(crlBytes);
     }
 
     public boolean shouldReadHeadersFromFile(String chainName, FileType fileType) {
@@ -48,7 +56,6 @@ public class FileService {
         return headersFileExists && crlFileExists;
     }
 
-    // TODO AUT-2455 Should we also move the headers? Should the input be byte[]?
     public void moveValidCrl(String chainName) throws IOException {
         Path source = getCrlTargetFilePath(chainName, FileType.TEMP);
         Path target = getCrlTargetFilePath(chainName, FileType.VALIDATED);

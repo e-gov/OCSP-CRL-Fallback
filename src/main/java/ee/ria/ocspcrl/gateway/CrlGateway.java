@@ -85,6 +85,7 @@ public class CrlGateway {
         }
     }
 
+    // TODO Reconsider the name as there is now a class called CrlCache.
     public record CrlCacheKey(
             String lastModified,
             String eTag

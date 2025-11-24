@@ -1,5 +1,6 @@
 package ee.ria.ocspcrl.service;
 
+import ee.ria.ocspcrl.CrlCache;
 import ee.ria.ocspcrl.assertion.OCSPRespAssert;
 import ee.ria.ocspcrl.util.CertificateUtils;
 import lombok.SneakyThrows;
@@ -60,13 +61,17 @@ class OcspServiceTest {
 
     @Mock
     private OcspKeyService keyService;
+
+    @Mock
+    private CrlCache crlCache;
+
     private OcspService ocspService;
 
     OcspServiceTest() throws OperatorCreationException {}
 
     @BeforeEach
     void setUp() {
-        ocspService = new OcspService(keyService);
+        ocspService = new OcspService(keyService, crlCache);
     }
 
     @Nested
@@ -165,9 +170,6 @@ class OcspServiceTest {
                     .hasNoResponseObject();
         }
 
-        // TODO AUT-2455 Fix
-        @Disabled("Loading the CRL files from disk causes OCSPResp.TRY_LATER until the files are loaded." +
-                "Will be fixed in AUT-2455 by creating a new class and mocking its methods.")
         @SneakyThrows
         @Test
         void whenInvalidIssuerNameHash_unknownStatusReturned() {
@@ -196,9 +198,6 @@ class OcspServiceTest {
                     .hasCertificateStatusUnknown();
         }
 
-        // TODO AUT-2455 Fix
-        @Disabled("Loading the CRL files from disk causes OCSPResp.TRY_LATER until the files are loaded." +
-                "Will be fixed in AUT-2455 by creating a new class and mocking its methods.")
         @SneakyThrows
         @Test
         void whenInvalidIssuerKeyHash_malformedRequestReturned() {

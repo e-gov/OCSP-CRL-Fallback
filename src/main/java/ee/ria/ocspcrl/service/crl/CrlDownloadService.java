@@ -1,5 +1,6 @@
 package ee.ria.ocspcrl.service.crl;
 
+import ee.ria.ocspcrl.CrlCache;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties.CrlDownload;
@@ -8,6 +9,7 @@ import ee.ria.ocspcrl.gateway.CrlGatewayFactory;
 import ee.ria.ocspcrl.service.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.cert.X509CRLHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -23,6 +25,7 @@ public class CrlDownloadService {
     private final FileService fileService;
     private final CrlGatewayFactory crlGatewayFactory;
     private final CrlValidationService crlValidationService;
+    private final CrlCache crlCache;
 
     public void downloadAllCrls() {
         for (var chain : properties.certificateChains()) {
@@ -59,7 +62,17 @@ public class CrlDownloadService {
         fileService.serializeToFile(chain.name(), newCrlFileResponse, FILE_TYPE);
         log.info("Downloaded file: {}", crl.url());
 
-        crlValidationService.validateCrl(chain.name(), newCrlFileResponse.crl());
+        X509CRLHolder crlHolder = new X509CRLHolder(newCrlFileResponse.crl());
+        if (!crlValidationService.isCrlValid(chain.name(), crlHolder)) {
+            log.warn("Aborted downloading CRL for chain {}", chain.name());
+            return;
+        }
+
+        crlCache.updateCrl(chain.name(), crlHolder);
+
+        log.info("Moving CRL from tmp to validated directory: {}", chain.name());
+        fileService.moveValidCrl(chain.name());
+        log.info("Moved CRL to validated directory: {}",  chain.name());
     }
 
     private CrlGateway.CrlCacheKey getRequestHeaders(String chainName) {
@@ -68,7 +81,7 @@ public class CrlDownloadService {
         }
 
         try {
-            return fileService.deserializeFromFile(chainName, CrlGateway.CrlCacheKey.class, FILE_TYPE);
+            return fileService.deserializeCrlCacheKeyFromFile(chainName, FILE_TYPE);
         } catch (IOException e) {
             log.error("Could not read headers from local file for chain {}", chainName);
             return null;
