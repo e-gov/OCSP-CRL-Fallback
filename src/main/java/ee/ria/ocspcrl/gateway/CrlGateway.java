@@ -1,28 +1,17 @@
 package ee.ria.ocspcrl.gateway;
 
-import ee.ria.ocspcrl.config.CrlConfigurationProperties;
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.boot.restclient.autoconfigure.RestClientSsl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
-import java.net.URL;
-
+@RequiredArgsConstructor
 public class CrlGateway {
 
     private final RestClient restClient;
-    private final RestClientSsl restClientSsl;
-
-    public CrlGateway(CrlConfigurationProperties.CrlDownload crlDownload, RestClientSsl restClientSsl) {
-        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory();
-        requestFactory.setReadTimeout(crlDownload.timeout());
-        this.restClientSsl = restClientSsl;
-        this.restClient = createRestClient(crlDownload, requestFactory);
-    }
 
     @SuppressWarnings("NullableProblems")
     public CrlResponse downloadFile(@Nullable CrlCacheKey crlCacheKey) {
@@ -61,28 +50,6 @@ public class CrlGateway {
         }
 
         return headersSpec;
-    }
-
-    private RestClient createRestClient(CrlConfigurationProperties.CrlDownload crl,
-                                        JdkClientHttpRequestFactory requestFactory) {
-        URL url = crl.url();
-
-        // Check whether to use configured truststore bundle or Java's default truststore for HTTPS connections.
-        // HTTP connections ignore truststore settings.
-        if (crl.tlsTruststoreBundle() != null) {
-            return RestClient.builder()
-                    .baseUrl(url.toString())
-                    // TODO AUT-2429: Add timeout: we can't use `.requestFactory(requestFactory)` here as it would be
-                    //        immediately overwritten by `.apply(restClientSsl.fromBundle()` which internally calls
-                    //        `builder.requestFactory(...)`
-                    .apply(restClientSsl.fromBundle(crl.tlsTruststoreBundle()))
-                    .build();
-        } else {
-            return RestClient.builder()
-                    .baseUrl(url.toString())
-                    .requestFactory(requestFactory)
-                    .build();
-        }
     }
 
     // TODO Reconsider the name as there is now a class called CrlCache.

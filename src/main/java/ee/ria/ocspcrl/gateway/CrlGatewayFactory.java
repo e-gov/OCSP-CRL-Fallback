@@ -2,18 +2,19 @@ package ee.ria.ocspcrl.gateway;
 
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.restclient.autoconfigure.RestClientSsl;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
 @Service
 @RequiredArgsConstructor
 public class CrlGatewayFactory {
 
-    private final RestClientSsl restClientSsl;
+    private final CrlRestClientFactory crlRestClientFactory;
 
     //TODO AUT-2429 Cache gateways
     public CrlGateway create(CrlConfigurationProperties.CrlDownload crlDownload) {
-        return new CrlGateway(crlDownload, restClientSsl);
+        RestClient restClient = crlRestClientFactory.create(crlDownload);
+        return new CrlGateway(restClient);
     }
 
 }
