@@ -55,8 +55,8 @@ Build and run the application:
 | ---------------- | ---------- | ---------------- |
 | `spring.ssl.bundle.pem.tls.keystore.certificate` | Yes | PEM-formatted TLS certificate used by application's HTTPS endpoints. Can be provided by path to file or by inlining it either directly into YAML or by using Base64. See [the Spring Boot documentation](https://docs.spring.io/spring-boot/reference/features/ssl.html#features.ssl.pem) for details. |
 | `spring.ssl.bundle.pem.tls.keystore.private-key` | Yes | PEM-formatted TLS private key used by application's HTTPS endpoints. Can be provided by path to file or by inlining it either directly into YAML or by using Base64. See [the Spring Boot documentation](https://docs.spring.io/spring-boot/reference/features/ssl.html#features.ssl.pem) for details. |
-| `spring.ssl.bundle.pem.ocsp.keystore.certificate` | Yes | PEM-formatted OCSP certificate. Can be provided by path to file or by inlining it either directly into YAML or by using Base64. See [the Spring Boot documentation](https://docs.spring.io/spring-boot/reference/features/ssl.html#features.ssl.pem) for details. |
-| `spring.ssl.bundle.pem.ocsp.keystore.private-key` | Yes | PEM-formatted TLS private key used by application's HTTPS endpoints. Can be provided by path to file or by inlining it either directly into YAML or by using Base64. See [the Spring Boot documentation](https://docs.spring.io/spring-boot/reference/features/ssl.html#features.ssl.pem) for details. |
+| `spring.ssl.bundle.pem.ocsp.keystore.certificate` | Yes | PEM-formatted OCSP response certificate. Can be provided by path to file or by inlining it either directly into YAML or by using Base64. See [the Spring Boot documentation](https://docs.spring.io/spring-boot/reference/features/ssl.html#features.ssl.pem) for details. |
+| `spring.ssl.bundle.pem.ocsp.keystore.private-key` | Yes | PEM-formatted private key used for signing OCSP responses. Can be provided by path to file or by inlining it either directly into YAML or by using Base64. See [the Spring Boot documentation](https://docs.spring.io/spring-boot/reference/features/ssl.html#features.ssl.pem) for details. |
 
 ### Loading CRLs
 
