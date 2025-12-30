@@ -14,8 +14,8 @@ public class CrlGateway {
     private final RestClient restClient;
 
     @SuppressWarnings("NullableProblems")
-    public CrlResponse downloadFile(@Nullable CrlCacheKey crlCacheKey) {
-        RestClient.RequestHeadersSpec<?> headersSpec = getHeadersSpec(crlCacheKey);
+    public CrlResponse downloadFile(@Nullable CrlHeaders crlHeaders) {
+        RestClient.RequestHeadersSpec<?> headersSpec = getHeadersSpec(crlHeaders);
 
         ResponseEntity<byte[]> response = headersSpec
                 .retrieve()
@@ -24,12 +24,12 @@ public class CrlGateway {
         HttpStatusCode statusCode = response.getStatusCode();
 
         if (statusCode == HttpStatus.NOT_MODIFIED) {
-            return new CrlFileNotModifiedResponse(crlCacheKey);
+            return new CrlFileNotModifiedResponse(crlHeaders);
         }
 
         return new NewCrlFileResponse(
                 response.getBody(),
-                new CrlCacheKey(
+                new CrlHeaders(
                         // TODO AUT-2380 Log a warning if the same header is returned multiple times
                         response.getHeaders().getFirst(HttpHeaders.LAST_MODIFIED),
                         response.getHeaders().getFirst(HttpHeaders.ETAG)
@@ -37,23 +37,22 @@ public class CrlGateway {
         );
     }
 
-    private RestClient.RequestHeadersSpec<?> getHeadersSpec(CrlCacheKey crlCacheKey) {
+    private RestClient.RequestHeadersSpec<?> getHeadersSpec(CrlHeaders crlHeaders) {
         RestClient.RequestHeadersSpec<?> headersSpec = restClient.get();
-        if (crlCacheKey == null)
+        if (crlHeaders == null)
             return headersSpec;
 
-        if (crlCacheKey.lastModified() != null) {
-            headersSpec.header(HttpHeaders.IF_MODIFIED_SINCE, crlCacheKey.lastModified());
+        if (crlHeaders.lastModified() != null) {
+            headersSpec.header(HttpHeaders.IF_MODIFIED_SINCE, crlHeaders.lastModified());
         }
-        if (crlCacheKey.eTag() != null) {
-            headersSpec.header(HttpHeaders.IF_NONE_MATCH, crlCacheKey.eTag());
+        if (crlHeaders.eTag() != null) {
+            headersSpec.header(HttpHeaders.IF_NONE_MATCH, crlHeaders.eTag());
         }
 
         return headersSpec;
     }
 
-    // TODO Reconsider the name as there is now a class called CrlCache.
-    public record CrlCacheKey(
+    public record CrlHeaders(
             String lastModified,
             String eTag
     ) {}
@@ -62,10 +61,10 @@ public class CrlGateway {
 
     public record NewCrlFileResponse(
             byte[] crl,
-            CrlCacheKey crlCacheKey
+            CrlHeaders crlHeaders
     ) implements CrlResponse {}
 
     public record CrlFileNotModifiedResponse(
-            CrlCacheKey crlCacheKey
+            CrlHeaders crlHeaders
     ) implements CrlResponse {}
 }
