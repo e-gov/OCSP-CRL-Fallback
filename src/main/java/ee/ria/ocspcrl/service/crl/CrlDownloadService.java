@@ -77,13 +77,13 @@ public class CrlDownloadService {
         log.info("Moved headers to validated directory: {}", chain.name());
     }
 
-    private CrlGateway.CrlCacheKey getRequestHeaders(String chainName) {
+    private CrlGateway.CrlHeaders getRequestHeaders(String chainName) {
         if (!fileService.shouldReadHeadersFromFile(chainName, FileService.FileType.VALIDATED)) {
             return null;
         }
 
         try {
-            return fileService.deserializeCrlCacheKeyFromFile(chainName, FileService.FileType.VALIDATED);
+            return fileService.deserializeCrlHeadersFromFile(chainName, FileService.FileType.VALIDATED);
         } catch (IOException e) {
             log.error("Could not read headers from local file for chain {}", chainName);
             return null;

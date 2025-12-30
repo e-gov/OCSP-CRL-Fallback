@@ -228,10 +228,10 @@ class CrlDownloadServiceTest extends BaseIntegrationTest {
         crlDownloadService.downloadAllCrls();
 
         Path expectedPath = TMP_DIR_PATH.resolve(TEST_CHAIN_NAME + ".headers.tmp");
-        CrlGateway.CrlCacheKey crlCacheKey = new CrlGateway.CrlCacheKey(
+        CrlGateway.CrlHeaders crlHeaders = new CrlGateway.CrlHeaders(
                 "Wed, 21 Oct 2015 07:28:00 GMT",
                 "\"33a64df551425fcc55e4d42a148795d9f25f89d4\"");
-        byte[] keyBytes = jsonMapper.writeValueAsBytes(crlCacheKey);
+        byte[] keyBytes = jsonMapper.writeValueAsBytes(crlHeaders);
         verify(fileIoService, times(1)).writeToFile(eq(expectedPath), aryEq(keyBytes));
     }
 

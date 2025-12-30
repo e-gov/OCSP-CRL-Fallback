@@ -25,16 +25,16 @@ public class FileService {
         Path headerPath = getHeadersTargetFilePath(chainName, fileType);
 
         fileIoService.writeToFile(crlPath, response.crl());
-        serializeToFile(headerPath, response.crlCacheKey());
+        serializeToFile(headerPath, response.crlHeaders());
     }
 
-    public CrlGateway.CrlCacheKey deserializeCrlCacheKeyFromFile(String chainName, FileType fileType)
+    public CrlGateway.CrlHeaders deserializeCrlHeadersFromFile(String chainName, FileType fileType)
             throws IOException {
         Path filePath = getHeadersTargetFilePath(chainName, fileType);
         if (filePath == null) {
             return null;
         }
-        return deserializeFromFile(filePath, CrlGateway.CrlCacheKey.class);
+        return deserializeFromFile(filePath, CrlGateway.CrlHeaders.class);
     }
 
     public X509CRLHolder deserializeCrlFromFile(String chainName, FileType fileType) throws IOException {
