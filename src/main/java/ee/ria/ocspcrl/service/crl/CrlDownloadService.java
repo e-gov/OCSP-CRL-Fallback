@@ -19,8 +19,6 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class CrlDownloadService {
 
-    private static final FileService.FileType FILE_TYPE = FileService.FileType.TEMP;
-
     private final CrlConfigurationProperties properties;
     private final FileService fileService;
     private final CrlGatewayFactory crlGatewayFactory;
@@ -59,7 +57,7 @@ public class CrlDownloadService {
             throw new RuntimeException("Received empty content from URL: " + crl.url());
         }
 
-        fileService.serializeToFile(chain.name(), newCrlFileResponse, FILE_TYPE);
+        fileService.serializeToFile(chain.name(), newCrlFileResponse, FileService.FileType.TEMP);
         log.info("Downloaded file: {}", crl.url());
 
         X509CRLHolder crlHolder = new X509CRLHolder(newCrlFileResponse.crl());
@@ -80,12 +78,12 @@ public class CrlDownloadService {
     }
 
     private CrlGateway.CrlCacheKey getRequestHeaders(String chainName) {
-        if (!fileService.shouldReadHeadersFromFile(chainName, FILE_TYPE)) {
+        if (!fileService.shouldReadHeadersFromFile(chainName, FileService.FileType.VALIDATED)) {
             return null;
         }
 
         try {
-            return fileService.deserializeCrlCacheKeyFromFile(chainName, FILE_TYPE);
+            return fileService.deserializeCrlCacheKeyFromFile(chainName, FileService.FileType.VALIDATED);
         } catch (IOException e) {
             log.error("Could not read headers from local file for chain {}", chainName);
             return null;
