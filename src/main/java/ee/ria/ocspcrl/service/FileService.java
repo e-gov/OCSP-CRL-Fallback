@@ -63,6 +63,13 @@ public class FileService {
         fileIoService.move(source, target);
     }
 
+    public void moveHeaders(String chainName) throws IOException {
+        Path source = getHeadersTargetFilePath(chainName, FileType.TEMP);
+        Path target = getHeadersTargetFilePath(chainName, FileType.VALIDATED);
+
+        fileIoService.move(source, target);
+    }
+
     private Path getCrlTargetFilePath(String chainName, FileType fileType) {
         if (fileType == FileType.TEMP) {
             return getCrlTmpTargetFilePath(chainName);

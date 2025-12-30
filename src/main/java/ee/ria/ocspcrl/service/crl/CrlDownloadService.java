@@ -73,6 +73,10 @@ public class CrlDownloadService {
         log.info("Moving CRL from tmp to validated directory: {}", chain.name());
         fileService.moveValidCrl(chain.name());
         log.info("Moved CRL to validated directory: {}",  chain.name());
+
+        log.info("Moving headers from tmp to validated directory: {}", chain.name());
+        fileService.moveHeaders(chain.name());
+        log.info("Moved headers to validated directory: {}", chain.name());
     }
 
     private CrlGateway.CrlCacheKey getRequestHeaders(String chainName) {
