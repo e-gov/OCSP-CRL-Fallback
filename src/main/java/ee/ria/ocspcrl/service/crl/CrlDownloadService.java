@@ -66,7 +66,7 @@ public class CrlDownloadService {
             return;
         }
 
-        crlCache.updateCrl(chain.name(), crlHolder);
+        crlCache.updateCrlAndHeaders(chain.name(), crlHolder, newCrlFileResponse.crlHeaders());
 
         log.info("Moving CRL from tmp to validated directory: {}", chain.name());
         fileService.moveValidCrl(chain.name());
@@ -78,6 +78,11 @@ public class CrlDownloadService {
     }
 
     private CrlGateway.CrlHeaders getRequestHeaders(String chainName) {
+        CrlGateway.CrlHeaders headersFromCrlCache = crlCache.getCrlHeaders(chainName);
+        if (headersFromCrlCache != null) {
+            return headersFromCrlCache;
+        }
+
         if (!fileService.shouldReadHeadersFromFile(chainName, FileService.FileType.VALIDATED)) {
             return null;
         }

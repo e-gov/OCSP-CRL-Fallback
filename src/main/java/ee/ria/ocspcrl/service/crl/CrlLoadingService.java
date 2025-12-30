@@ -3,6 +3,7 @@ package ee.ria.ocspcrl.service.crl;
 import ee.ria.ocspcrl.CrlCache;
 import ee.ria.ocspcrl.FilesLoadedHealthIndicator;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
+import ee.ria.ocspcrl.gateway.CrlGateway;
 import ee.ria.ocspcrl.service.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,13 +42,16 @@ public class CrlLoadingService {
         log.info("Loading CRLs from disk...");
         for (var chain : properties.certificateChains()) {
             try {
-                X509CRLHolder crlHolder = loadCrlFromDisk(chain.name());
-                if (crlHolder == null) {
+                CrlCache.CrlInfo crlInfo = loadCrlInfoFromDisk(chain.name());
+                if (crlInfo == null) {
+                    continue;
+                }
+                if (crlInfo.crlHolder() == null || crlInfo.crlHeaders() == null) {
                     // TODO AUT-2380 Add logging
                     continue;
                 }
 
-                crlCache.updateCrl(chain.name(), crlHolder);
+                crlCache.updateCrlAndHeaders(chain.name(), crlInfo.crlHolder(), crlInfo.crlHeaders());
                 log.info("Loaded CRL for {}", chain.name());
             } catch (Exception e) {
                 log.atError()
@@ -60,10 +64,12 @@ public class CrlLoadingService {
         filesLoadedHealthIndicator.setReady();
     }
 
-    private X509CRLHolder loadCrlFromDisk(String chainName) throws IOException {
+    private CrlCache.CrlInfo loadCrlInfoFromDisk(String chainName) throws IOException {
         X509CRLHolder crlHolder;
+        CrlGateway.CrlHeaders crlHeaders;
         try {
             crlHolder = fileService.deserializeCrlFromFile(chainName, FileService.FileType.VALIDATED);
+            crlHeaders = fileService.deserializeCrlHeadersFromFile(chainName, FileService.FileType.VALIDATED);
         } catch (NoSuchFileException e) {
             log.info("Cannot find file {}", e.getMessage());
             return null;
@@ -74,6 +80,6 @@ public class CrlLoadingService {
             return null;
         }
 
-        return crlHolder;
+        return new CrlCache.CrlInfo(crlHeaders, crlHolder);
     }
 }
