@@ -1,6 +1,5 @@
 package ee.ria.ocspcrl.gateway;
 
-import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -8,10 +7,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
 
-@RequiredArgsConstructor
-public class CrlGateway {
-
-    private final RestClient restClient;
+public record CrlGateway(RestClient restClient) {
 
     @SuppressWarnings("NullableProblems")
     public CrlResponse downloadFile(@Nullable CrlHeaders crlHeaders) {
