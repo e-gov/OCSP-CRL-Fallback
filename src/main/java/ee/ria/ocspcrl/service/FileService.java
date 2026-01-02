@@ -34,7 +34,8 @@ public class FileService {
         if (filePath == null) {
             return null;
         }
-        return deserializeFromFile(filePath, CrlGateway.CrlHeaders.class);
+        byte[] objectBytes = fileIoService.readFromFile(filePath);
+        return jsonMapper.readValue(objectBytes, CrlGateway.CrlHeaders.class);
     }
 
     public X509CRLHolder deserializeCrlFromFile(String chainName, FileType fileType) throws IOException {
@@ -106,12 +107,6 @@ public class FileService {
         byte[] objectBytes = jsonMapper.writeValueAsBytes(object);
 
         fileIoService.writeToFile(filePath, objectBytes);
-    }
-
-    private <T> T deserializeFromFile(Path filePath, Class<T> clazz) throws IOException {
-        byte[] objectBytes = fileIoService.readFromFile(filePath);
-
-        return jsonMapper.readValue(objectBytes, clazz);
     }
 
     private Path getHeadersTmpTargetFilePath(String chainName) {
