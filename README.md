@@ -12,9 +12,8 @@ the certificates which are in the revocation lists.
 
 Generate self-signed OCSP certificate and key:
 
-```shell
-local/generate-ocsp-signing-certificate.sh
-```
+* Run
+  `docker run --rm -v ./:/work -w /work alpine/openssl:3.5.4 req -batch -x509 -new -utf8 -text -not_before 20260106060000Z -not_after 20560106060000Z -noenc -newkey ec -pkeyopt ec_paramgen_curve:P-384 -keyout src/main/resources/ocsp-certificate/ocsp.key.pem -out src/main/resources/ocsp-certificate/ocsp.cer.pem -sha384 -subj '/CN=local-ocsp' -addext basicConstraints=CA:false -addext keyUsage=digitalSignature -addext extendedKeyUsage=OCSPSigning`
 
 Edit `src/main/resources/application.yml` file as instructed by "Configuration" paragraph below.
 Build and run the application:

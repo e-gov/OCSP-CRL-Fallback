@@ -90,7 +90,7 @@ ocsp-crl-fallback:
         tls-truststore-bundle: test_esteid2018-tls
         crl-truststore-bundle: test_esteid2018-crl
     - name: test_esteid2025
-      issuer-certificate: file:/etc/ocspcrl/secrets/eid/testEEGovCA2025.crt.pem
+      issuer-certificate: file:/etc/ocspcrl/secrets/eid/Test_ESTEID2025.crt.pem
       crl-download:
         url: https://crl-test.eidpki.ee/testESTEID2025.crl
         timeout: 30s
