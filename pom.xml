@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.1</version>
+        <version>4.0.3</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -30,7 +30,7 @@
         <githubMirror>https://github.com</githubMirror>
 
         <bouncycastle.version>1.83</bouncycastle.version>
-        <elastic-apm.version>1.55.2</elastic-apm.version>
+        <elastic-apm.version>1.55.4</elastic-apm.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
         <!-- TODO AUT-2380 Update logstash-logback-encoder to version 9.0 -->
         <logstash-logback-encoder.version>8.1</logstash-logback-encoder.version>
