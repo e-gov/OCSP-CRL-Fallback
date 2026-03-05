@@ -15,6 +15,7 @@ import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
 import org.bouncycastle.asn1.ocsp.OCSPResponseStatus;
 import org.bouncycastle.asn1.ocsp.ResponderID;
 import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
+import org.bouncycastle.asn1.x509.CRLReason;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
@@ -232,7 +233,6 @@ public class OcspService {
 
     private void ensureCertificateNotInCrl(CertificateID certId, @NotNull X509CRLHolder crlHolder) {
         BigInteger serialNumber = certId.getSerialNumber();
-
         X509CRLEntryHolder revokedCertificate = crlHolder.getRevokedCertificate(serialNumber);
 
         if (revokedCertificate == null) {
@@ -241,6 +241,9 @@ public class OcspService {
 
         Date revocationTime = revokedCertificate.getRevocationDate();
         Extension reasonCodeExtension = revokedCertificate.getExtension(Extension.reasonCode);
+        if (reasonCodeExtension == null) {
+            throw new CertificateRevokedException(revocationTime, null);
+        }
         ASN1Encodable asnReasonCode = reasonCodeExtension.getParsedValue();
         Integer revocationReason = null;
         if (asnReasonCode instanceof ASN1Enumerated enumerated) {
