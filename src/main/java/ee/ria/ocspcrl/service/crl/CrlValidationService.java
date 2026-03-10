@@ -31,11 +31,10 @@ public class CrlValidationService {
     private final CrlConfigurationProperties properties;
     private final CrlCache crlCache;
 
-    public boolean isCrlValid(String chainName, X509CRLHolder crlHolder) {
+    public boolean shouldUse(String chainName, X509CRLHolder crlHolder) {
         try {
-            log.info("Validating CRL: {}", chainName);
+            log.debug("Validating CRL: {}", chainName);
             validateSignature(crlHolder, chainName);
-            validateNextUpdate(crlHolder, chainName);
         } catch (CrlValidationException e) {
             log.warn("Failed to validate CRL for {}: {}", chainName, e.getMessage());
             return false;
@@ -45,7 +44,7 @@ public class CrlValidationService {
                     .log("Failed to validate CRL for {}", chainName);
             return false;
         }
-        return true;
+        return validateNextUpdate(crlHolder, chainName);
     }
 
     private void validateSignature(X509CRLHolder crlHolder, String chainName) {
@@ -71,20 +70,21 @@ public class CrlValidationService {
         }
     }
 
-    private void validateNextUpdate(X509CRLHolder crlHolder, String chainName) {
+    private boolean validateNextUpdate(X509CRLHolder crlHolder, String chainName) {
         X509CRLHolder previousValidatedCrl = crlCache.getCrl(chainName);
         if (previousValidatedCrl == null)
-            return;
+            return true;
 
         Date newNextUpdate = crlHolder.getNextUpdate();
         Date previousNextUpdate = previousValidatedCrl.getNextUpdate();
 
         if (newNextUpdate == null || previousNextUpdate == null) {
-            return;
+            return true;
         }
-
-        if (!newNextUpdate.after(previousNextUpdate)) {
-            throw new CrlValidationException("New Next Update is not after the previous one");
+        if (newNextUpdate.before(previousNextUpdate)) {
+            log.warn("New Next Update is before the previous one");
+            return false;
         }
+        return !newNextUpdate.equals(previousNextUpdate);
     }
 }

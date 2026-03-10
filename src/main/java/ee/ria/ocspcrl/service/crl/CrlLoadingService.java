@@ -75,8 +75,8 @@ public class CrlLoadingService {
             return null;
         }
 
-        if (!crlValidationService.isCrlValid(chainName, crlHolder)) {
-            log.warn("Aborted loading CRL from disk for chain {}", chainName);
+        if (!crlValidationService.shouldUse(chainName, crlHolder)) {
+            log.debug("Aborted loading CRL from disk for chain {}", chainName);
             return null;
         }
 

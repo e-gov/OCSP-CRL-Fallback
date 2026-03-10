@@ -61,8 +61,8 @@ public class CrlDownloadService {
         log.info("Downloaded file: {}", crl.url());
 
         X509CRLHolder crlHolder = new X509CRLHolder(newCrlFileResponse.crl());
-        if (!crlValidationService.isCrlValid(chain.name(), crlHolder)) {
-            log.warn("Aborted downloading CRL for chain {}", chain.name());
+        if (!crlValidationService.shouldUse(chain.name(), crlHolder)) {
+            log.debug("Aborted downloading CRL for chain {}", chain.name());
             return;
         }
 
