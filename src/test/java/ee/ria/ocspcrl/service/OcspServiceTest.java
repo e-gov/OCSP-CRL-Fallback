@@ -2,6 +2,7 @@ package ee.ria.ocspcrl.service;
 
 import ee.ria.ocspcrl.CrlCache;
 import ee.ria.ocspcrl.assertion.OCSPRespAssert;
+import ee.ria.ocspcrl.logging.OcspLogger;
 import ee.ria.ocspcrl.util.CertificateUtils;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -65,13 +66,16 @@ class OcspServiceTest {
     @Mock
     private CrlCache crlCache;
 
+    @Mock
+    private OcspLogger ocspLogger;
+
     private OcspService ocspService;
 
     OcspServiceTest() throws OperatorCreationException {}
 
     @BeforeEach
     void setUp() {
-        ocspService = new OcspService(keyService, crlCache);
+        ocspService = new OcspService(keyService, crlCache, ocspLogger);
     }
 
     @Nested

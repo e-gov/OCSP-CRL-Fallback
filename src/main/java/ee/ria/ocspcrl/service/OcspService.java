@@ -3,6 +3,7 @@ package ee.ria.ocspcrl.service;
 import ee.ria.ocspcrl.CrlCache;
 import ee.ria.ocspcrl.exception.CertificateChainMismatchException;
 import ee.ria.ocspcrl.exception.CertificateRevokedException;
+import ee.ria.ocspcrl.logging.OcspLogger;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +16,6 @@ import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
 import org.bouncycastle.asn1.ocsp.OCSPResponseStatus;
 import org.bouncycastle.asn1.ocsp.ResponderID;
 import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
-import org.bouncycastle.asn1.x509.CRLReason;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
@@ -62,6 +62,8 @@ public class OcspService {
 
     private final OcspKeyService keyService;
     private final CrlCache crlCache;
+    private final OcspLogger ocspLogger;
+
     private final DigestCalculatorProvider digestCalculatorProvider = new BcDigestCalculatorProvider();
 
     @SuppressWarnings({"DataFlowIssue"})
@@ -98,12 +100,23 @@ public class OcspService {
         try {
             ensureCertificateNotInCrl(certRequest.getCertID(), crlHolder);
         } catch (CertificateRevokedException e) {
-            RevokedStatus revokedStatus = getRevokedStatus(e);
-            return createSignedOcspResponse(certRequest.getCertID(), nonce, revokedStatus, OCSPResponseStatus.SUCCESSFUL, crlHolder);
+            CertificateStatus revokedStatus = getRevokedStatus(e);
+            return createSuccessfulResponse(certRequest, nonce, revokedStatus, crlHolder, issuerCertificate);
         }
 
         // All the other exceptions are handled in the controller by returning HTTP 500
-        return createSignedOcspResponse(certRequest.getCertID(), nonce, CertificateStatus.GOOD, OCSPResponseStatus.SUCCESSFUL, crlHolder);
+        return createSuccessfulResponse(certRequest, nonce, CertificateStatus.GOOD, crlHolder, issuerCertificate);
+    }
+
+    private OCSPResp createSuccessfulResponse(Req certRequest,
+                                              byte[] nonce,
+                                              CertificateStatus certStatus,
+                                              X509CRLHolder crlHolder,
+                                              X509CertificateHolder issuerCertificate) throws Exception {
+        CertificateID certId = certRequest.getCertID();
+        OCSPResp ocspResp = createSignedOcspResponse(certId, nonce, certStatus, OCSPResponseStatus.SUCCESSFUL, crlHolder);
+        ocspLogger.logSuccessfulResponse(issuerCertificate, certId, crlHolder, certStatus, ocspResp);
+        return ocspResp;
     }
 
     private OCSPResp createSignedOcspResponse(CertificateID certId, byte[] nonce, CertificateStatus certificateStatus, int ocspResponseStatus, X509CRLHolder crlHolder) throws Exception {
