@@ -11,7 +11,7 @@
 
     <groupId>ee.ria.ocspcrl</groupId>
     <artifactId>ocsp-crl-fallback</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 
     <name>OCSP CRL Fallback Service</name>
     <licenses>
