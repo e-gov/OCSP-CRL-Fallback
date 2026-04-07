@@ -82,19 +82,19 @@ public class OcspService {
             return createResponseForMalformedRequest();
         }
 
+        X509CRLHolder crlHolder = crlCache.getCrl(chainName);
+        if (crlHolder == null) {
+            return createSignedOcspResponse(certRequest.getCertID(), nonce, null, OCSPResponseStatus.TRY_LATER, null);
+        }
+
         try {
             validateIssuer(certRequest, issuerCertificate);
         } catch (CertificateChainMismatchException e) {
-            return createSignedOcspResponse(certRequest.getCertID(), nonce, new UnknownStatus(), OCSPResponseStatus.SUCCESSFUL, null);
+            return createSignedOcspResponse(certRequest.getCertID(), nonce, new UnknownStatus(), OCSPResponseStatus.SUCCESSFUL, crlHolder);
         } catch (Exception e) {
             // For request parsing exceptions, malformed request is returned with HTTP 200
             log.info("Invalid OCSP request", e);
             return createResponseForMalformedRequest();
-        }
-
-        X509CRLHolder crlHolder = crlCache.getCrl(chainName);
-        if (crlHolder == null) {
-            return createSignedOcspResponse(certRequest.getCertID(), nonce, null, OCSPResponseStatus.TRY_LATER, null);
         }
 
         try {
