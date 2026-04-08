@@ -3,6 +3,7 @@ package ee.ria.ocspcrl.config;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import lombok.With;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -19,10 +20,10 @@ import static java.util.stream.Collectors.toMap;
 @Validated
 @ConfigurationProperties("ocsp-crl-fallback")
 public record CrlConfigurationProperties (
-    @NotNull Duration crlLoadingInterval,
-    List<@Valid CertificateChain> certificateChains,
-    @NotNull Path tmpPath,
-    @NotNull Path crlPath
+        @NotNull @With Duration crlLoadingInterval,
+        @With List<@Valid CertificateChain> certificateChains,
+        @NotNull Path tmpPath,
+        @NotNull Path crlPath
 ) {
 
     public List<CertificateChain> certificateChains() {

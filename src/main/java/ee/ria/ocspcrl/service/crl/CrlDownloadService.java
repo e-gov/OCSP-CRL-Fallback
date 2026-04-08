@@ -1,7 +1,6 @@
 package ee.ria.ocspcrl.service.crl;
 
 import ee.ria.ocspcrl.CrlCache;
-import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties.CrlDownload;
 import ee.ria.ocspcrl.gateway.CrlGateway;
@@ -19,25 +18,12 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class CrlDownloadService {
 
-    private final CrlConfigurationProperties properties;
     private final FileService fileService;
     private final CrlGatewayFactory crlGatewayFactory;
     private final CrlValidationService crlValidationService;
     private final CrlCache crlCache;
 
-    public void downloadAllCrls() {
-        for (var chain : properties.certificateChains()) {
-            try {
-                downloadCrl(chain);
-            } catch (Exception e) {
-                log.atError()
-                        .setCause(e)
-                        .log("Failed to download CRL for {}", chain.name());
-            }
-        }
-    }
-
-    private void downloadCrl(CertificateChain chain) throws IOException {
+    public void downloadCrl(CertificateChain chain) throws IOException {
         CrlDownload crl = chain.crlDownload();
         CrlGateway gateway = crlGatewayFactory.create(crl);
         log.info("Downloading file: {}", crl.url());
