@@ -15,6 +15,7 @@ import org.bouncycastle.asn1.ocsp.TBSRequest;
 import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.ocsp.CertificateID;
 import org.bouncycastle.cert.ocsp.OCSPReq;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -36,6 +38,8 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
+import java.util.Date;
 
 import static ee.ria.ocspcrl.service.OcspService.createNonceExtension;
 import static ee.ria.ocspcrl.service.OcspService.getNonce;
@@ -188,8 +192,13 @@ class OcspServiceTest {
                     .addRequest(new CertificateID(actual))
                     .setRequestExtensions(createNonceExtension(NONCE))
                     .build();
+            X509CRLHolder crlHolder = Mockito.mock(X509CRLHolder.class);
+
             when(keyService.getOcspSigningCert()).thenReturn(SIGNING_CERTIFICATE);
             when(keyService.getOcspSigningKey()).thenReturn(SIGNING_KEY);
+            when(crlCache.getCrl(CHAIN_NAME)).thenReturn(crlHolder);
+            when(crlHolder.getThisUpdate()).thenReturn(Date.from(Instant.EPOCH));
+            when(crlHolder.getNextUpdate()).thenReturn(Date.from(Instant.EPOCH));
 
             OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
@@ -216,8 +225,12 @@ class OcspServiceTest {
                     .addRequest(new CertificateID(actual))
                     .setRequestExtensions(createNonceExtension(NONCE))
                     .build();
+            X509CRLHolder crlHolder = Mockito.mock(X509CRLHolder.class);
             when(keyService.getOcspSigningCert()).thenReturn(SIGNING_CERTIFICATE);
             when(keyService.getOcspSigningKey()).thenReturn(SIGNING_KEY);
+            when(crlCache.getCrl(CHAIN_NAME)).thenReturn(crlHolder);
+            when(crlHolder.getThisUpdate()).thenReturn(Date.from(Instant.EPOCH));
+            when(crlHolder.getNextUpdate()).thenReturn(Date.from(Instant.EPOCH));
 
             OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
