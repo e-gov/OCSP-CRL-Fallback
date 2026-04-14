@@ -31,7 +31,7 @@ public class TraceIdLoggingFilter extends OncePerRequestFilter {
         boolean elasticApmTraceIdExists = StringUtils.isNotEmpty(requestTraceId);
         if (!elasticApmTraceIdExists) {
             // Use same format as Elastic APM Agent.
-            requestTraceId = RandomStringUtils.random(32, "0123456789abcdef");
+            requestTraceId = RandomStringUtils.secure().next(32, "0123456789abcdef");
         }
 
         // NB! Set traceId also as HttpServletRequest attribute to make it accessible for Tomcat's AccessLogValve.
