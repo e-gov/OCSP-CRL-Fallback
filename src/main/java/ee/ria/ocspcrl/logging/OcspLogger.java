@@ -2,9 +2,7 @@ package ee.ria.ocspcrl.logging;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import ee.ria.ocspcrl.mapper.OcspMapper;
-import lombok.Builder;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -36,28 +34,14 @@ public class OcspLogger {
     }
 
     @Builder
-    @Data
-    public static class OcspResponseContext {
+    public record OcspResponseContext(
+        @JsonProperty("custom.issuer_cn") String issuerCn,
+        @JsonProperty("custom.cert_serial_number") String serialNumber,
+        @JsonProperty("custom.cert_status") String certStatus,
+        @JsonProperty("custom.produced_at") Date producedAt,
+        @JsonProperty("custom.this_update") Date thisUpdate,
+        @JsonProperty("custom.next_update") Date nextUpdate,
+        @JsonProperty("custom.crl_number") BigInteger crlNumber
+    ) {}
 
-        @JsonProperty("custom.issuer_cn")
-        private String issuerCn;
-
-        @JsonProperty("custom.cert_serial_number")
-        private String serialNumber;
-
-        @JsonProperty("custom.cert_status")
-        private String certStatus;
-
-        @JsonProperty("custom.produced_at")
-        private Date producedAt;
-
-        @JsonProperty("custom.this_update")
-        private Date thisUpdate;
-
-        @JsonProperty("custom.next_update")
-        private Date nextUpdate;
-
-        @JsonProperty("custom.crl_number")
-        private BigInteger crlNumber;
-    }
 }
