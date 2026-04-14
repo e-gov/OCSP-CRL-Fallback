@@ -1,11 +1,11 @@
 package ee.ria.ocspcrl.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.gateway.CrlGateway;
 import lombok.RequiredArgsConstructor;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -14,7 +14,7 @@ import java.nio.file.Path;
 @RequiredArgsConstructor
 public class FileService {
 
-    public static final ObjectMapper jsonMapper = new ObjectMapper();
+    public static final JsonMapper jsonMapper = new JsonMapper();
 
     private final FileIoService fileIoService;
     private final CrlConfigurationProperties properties;

@@ -1,6 +1,5 @@
 package ee.ria.ocspcrl.service.crl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import ee.ria.ocspcrl.BaseIntegrationTest;
@@ -28,6 +27,7 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import tools.jackson.databind.json.JsonMapper;
 
 import javax.net.ssl.SSLContext;
 import java.io.FileOutputStream;
@@ -68,7 +68,7 @@ import static org.mockito.Mockito.verify;
 // TODO Reorganize tests.
 class CrlDownloadServiceTest extends BaseIntegrationTest {
 
-    public static final ObjectMapper jsonMapper = new ObjectMapper();
+    public static final JsonMapper jsonMapper = new JsonMapper();
 
     private static final String TEST_CHAIN_NAME = "test_esteid1111";
     private static final String STORES_PASSWORD = "password";

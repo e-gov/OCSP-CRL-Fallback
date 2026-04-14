@@ -38,7 +38,7 @@
             <level>${log.level.file}</level>
         </filter>
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <jsonFactoryDecorator class="ee.ria.ocspcrl.logging.LogbackJsonFactoryDecorator"/>
+            <decorator class="ee.ria.ocspcrl.logging.LogbackMapperBuilderDecorator"/>
             <providers>
                 <timestamp>
                     <fieldName>@timestamp</fieldName>

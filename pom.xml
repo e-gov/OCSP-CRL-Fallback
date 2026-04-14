@@ -32,8 +32,7 @@
         <bouncycastle.version>1.83</bouncycastle.version>
         <elastic-apm.version>1.55.4</elastic-apm.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
-        <!-- TODO AUT-2380 Update logstash-logback-encoder to version 9.0 -->
-        <logstash-logback-encoder.version>8.1</logstash-logback-encoder.version>
+        <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
         <rest-assured.version>6.0.0</rest-assured.version>
         <wiremock.version>3.13.2</wiremock.version>
     </properties>
