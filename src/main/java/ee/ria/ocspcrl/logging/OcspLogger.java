@@ -2,7 +2,8 @@ package ee.ria.ocspcrl.logging;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import ee.ria.ocspcrl.mapper.OcspMapper;
-import lombok.*;
+import lombok.Builder;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509CertificateHolder;
