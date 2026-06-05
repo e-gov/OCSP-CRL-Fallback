@@ -7,12 +7,11 @@ import ee.ria.ocspcrl.config.CrlConfigurationProperties.CrlDownload;
 import ee.ria.ocspcrl.gateway.CrlGateway;
 import ee.ria.ocspcrl.gateway.CrlGatewayFactory;
 import ee.ria.ocspcrl.service.FileService;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
 
 @Slf4j
 @Service
@@ -30,9 +29,7 @@ public class CrlDownloadService {
             try {
                 downloadCrl(chain);
             } catch (Exception e) {
-                log.atError()
-                        .setCause(e)
-                        .log("Failed to download CRL for {}", chain.name());
+                log.atError().setCause(e).log("Failed to download CRL for {}", chain.name());
             }
         }
     }
@@ -70,7 +67,7 @@ public class CrlDownloadService {
 
         log.info("Moving CRL from tmp to validated directory: {}", chain.name());
         fileService.moveValidCrl(chain.name());
-        log.info("Moved CRL to validated directory: {}",  chain.name());
+        log.info("Moved CRL to validated directory: {}", chain.name());
 
         log.info("Moving headers from tmp to validated directory: {}", chain.name());
         fileService.moveHeaders(chain.name());
@@ -94,5 +91,4 @@ public class CrlDownloadService {
             return null;
         }
     }
-
 }

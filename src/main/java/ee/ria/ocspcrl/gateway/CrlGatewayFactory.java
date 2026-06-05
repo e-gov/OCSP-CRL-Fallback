@@ -16,5 +16,4 @@ public class CrlGatewayFactory {
         RestClient restClient = crlRestClientFactory.create(crlDownload);
         return new CrlGateway(restClient);
     }
-
 }

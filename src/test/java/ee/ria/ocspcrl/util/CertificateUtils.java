@@ -1,19 +1,5 @@
 package ee.ria.ocspcrl.util;
 
-import lombok.SneakyThrows;
-import lombok.experimental.UtilityClass;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
-import org.bouncycastle.asn1.sec.ECPrivateKey;
-import org.bouncycastle.asn1.x9.X9ObjectIdentifiers;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMParser;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,6 +23,19 @@ import java.util.Base64;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import lombok.SneakyThrows;
+import lombok.experimental.UtilityClass;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.asn1.sec.ECPrivateKey;
+import org.bouncycastle.asn1.x9.X9ObjectIdentifiers;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMParser;
 
 @UtilityClass
 public class CertificateUtils {
@@ -54,7 +53,10 @@ public class CertificateUtils {
     // originalDefaultContext = SSLContext.getDefault();              // Backup SSLContext before using this method
     // addCertificatesFromSpecifiedTruststoreToDefaultTruststore(...) // Use the method
     // SSLContext.setDefault(originalDefaultContext);                 // Restore SSLContext after using this method
-    public static void addCertificatesFromSpecifiedTruststoreToDefaultTruststore(Path customTruststorePath, String customTruststorePassword) throws Exception {
+    public static void addCertificatesFromSpecifiedTruststoreToDefaultTruststore(
+        Path customTruststorePath,
+        String customTruststorePassword
+    ) throws Exception {
         KeyStore defaultTrustStore = getDefaultTrustStore();
         KeyStore customTrustStore = loadCustomTruststore(customTruststorePath, customTruststorePassword);
         updateDefaultTruststore(customTrustStore, defaultTrustStore);
@@ -62,7 +64,8 @@ public class CertificateUtils {
         SSLContext.setDefault(newContext);
     }
 
-    private static SSLContext createNewSslContext(KeyStore defaultTrustStore) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    private static SSLContext createNewSslContext(KeyStore defaultTrustStore)
+        throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(defaultTrustStore);
         SSLContext newContext = SSLContext.getInstance("TLS");
@@ -70,7 +73,8 @@ public class CertificateUtils {
         return newContext;
     }
 
-    private static void updateDefaultTruststore(KeyStore customTrustStore, KeyStore defaultTrustStore) throws KeyStoreException {
+    private static void updateDefaultTruststore(KeyStore customTrustStore, KeyStore defaultTrustStore)
+        throws KeyStoreException {
         Enumeration<String> aliases = customTrustStore.aliases();
         while (aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
@@ -83,7 +87,8 @@ public class CertificateUtils {
         }
     }
 
-    private static KeyStore loadCustomTruststore(Path customTrustStorePath, String customTruststorePassword) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
+    private static KeyStore loadCustomTruststore(Path customTrustStorePath, String customTruststorePassword)
+        throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
         KeyStore customTrustStore = KeyStore.getInstance("PKCS12");
         try (FileInputStream inputStream = new FileInputStream(customTrustStorePath.toFile())) {
             char[] password = null;
@@ -95,7 +100,8 @@ public class CertificateUtils {
         return customTrustStore;
     }
 
-    private static KeyStore getDefaultTrustStore() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
+    private static KeyStore getDefaultTrustStore()
+        throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
         String defaultTruststorePath = System.getProperty("java.home") + "/lib/security/cacerts";
         char[] defaultPassword = JAVA_DEFAULT_TRUSTSTORE_PASSWORD.toCharArray();
 
@@ -148,15 +154,16 @@ public class CertificateUtils {
 
         String pem;
         try (InputStream inputStream = resourceUrl.openStream()) {
-            if (inputStream == null)
-                throw new IllegalArgumentException("Private key file not found in classpath: " + path);
+            if (inputStream == null) throw new IllegalArgumentException(
+                "Private key file not found in classpath: " + path
+            );
             pem = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
 
         // Extract "EC PARAMETERS" block from PEM file
         Pattern paramsPattern = Pattern.compile(
-                "-----BEGIN EC PARAMETERS-----(.*?)-----END EC PARAMETERS-----",
-                Pattern.DOTALL
+            "-----BEGIN EC PARAMETERS-----(.*?)-----END EC PARAMETERS-----",
+            Pattern.DOTALL
         );
         Matcher paramsMatcher = paramsPattern.matcher(pem);
         if (!paramsMatcher.find()) {
@@ -171,13 +178,15 @@ public class CertificateUtils {
         if (paramsAsn1 instanceof ASN1ObjectIdentifier oid) {
             curveOid = oid;
         } else {
-            throw new IllegalArgumentException("Invalid EC PARAMETERS block — expected OID but got: " + paramsAsn1.getClass());
+            throw new IllegalArgumentException(
+                "Invalid EC PARAMETERS block — expected OID but got: " + paramsAsn1.getClass()
+            );
         }
 
         // Extract "EC PRIVATE KEY" block from PEM file
         Pattern keyPattern = Pattern.compile(
-                "-----BEGIN EC PRIVATE KEY-----(.*?)-----END EC PRIVATE KEY-----",
-                Pattern.DOTALL
+            "-----BEGIN EC PRIVATE KEY-----(.*?)-----END EC PRIVATE KEY-----",
+            Pattern.DOTALL
         );
         Matcher keyMatcher = keyPattern.matcher(pem);
         if (!keyMatcher.find()) {
@@ -191,8 +200,8 @@ public class CertificateUtils {
 
         // Wrap the key into PKCS#8 with previously parsed curve OID
         PrivateKeyInfo privateKeyInfo = new PrivateKeyInfo(
-                new org.bouncycastle.asn1.x509.AlgorithmIdentifier(X9ObjectIdentifiers.id_ecPublicKey, curveOid),
-                ecPrivateKey
+            new org.bouncycastle.asn1.x509.AlgorithmIdentifier(X9ObjectIdentifiers.id_ecPublicKey, curveOid),
+            ecPrivateKey
         );
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(privateKeyInfo.getEncoded());
 

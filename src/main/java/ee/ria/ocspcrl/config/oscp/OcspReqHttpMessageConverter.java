@@ -1,5 +1,7 @@
 package ee.ria.ocspcrl.config.oscp;
 
+import java.io.IOException;
+import java.io.InputStream;
 import lombok.NonNull;
 import org.bouncycastle.cert.ocsp.OCSPReq;
 import org.springframework.http.HttpInputMessage;
@@ -10,9 +12,6 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.unit.DataSize;
-
-import java.io.IOException;
-import java.io.InputStream;
 
 @Component
 public class OcspReqHttpMessageConverter extends AbstractHttpMessageConverter<OCSPReq> {
@@ -32,12 +31,14 @@ public class OcspReqHttpMessageConverter extends AbstractHttpMessageConverter<OC
     @Override
     @NonNull
     protected OCSPReq readInternal(@NonNull Class<? extends OCSPReq> clazz, @NonNull HttpInputMessage inputMessage)
-            throws IOException, HttpMessageNotReadableException {
+        throws IOException, HttpMessageNotReadableException {
         try (InputStream requestBodyStream = inputMessage.getBody()) {
             byte[] bytes = requestBodyStream.readNBytes(Math.toIntExact(MAX_BODY_SIZE.toBytes()));
             if (requestBodyStream.read() != -1) {
                 throw new HttpMessageNotReadableException(
-                        "Expected OCSP request to be no larger than " + MAX_BODY_SIZE, inputMessage);
+                    "Expected OCSP request to be no larger than " + MAX_BODY_SIZE,
+                    inputMessage
+                );
             }
             return new OCSPReq(bytes);
         }
@@ -45,8 +46,7 @@ public class OcspReqHttpMessageConverter extends AbstractHttpMessageConverter<OC
 
     @Override
     protected void writeInternal(@NonNull OCSPReq ocspReq, @NonNull HttpOutputMessage outputMessage)
-            throws HttpMessageNotWritableException {
+        throws HttpMessageNotWritableException {
         throw new HttpMessageNotWritableException("Serializing OCSP requests is not implemented");
     }
-
 }

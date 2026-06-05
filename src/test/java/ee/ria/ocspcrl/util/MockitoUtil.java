@@ -9,5 +9,4 @@ public class MockitoUtil {
     public static final Answer<?> ANSWER_THROW_EXCEPTION = invocation -> {
         throw new IllegalStateException("Unexpected method invocation: " + invocation);
     };
-
 }

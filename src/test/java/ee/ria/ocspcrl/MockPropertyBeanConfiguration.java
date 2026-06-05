@@ -1,12 +1,11 @@
 package ee.ria.ocspcrl;
 
+import java.util.Properties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-
-import java.util.Properties;
 
 //This class was implemented to prevent the need for mvn compile when running tests in IDE
 @Deprecated // Move to eID-Common library

@@ -2,6 +2,7 @@ package ee.ria.ocspcrl.mapper;
 
 import ee.ria.ocspcrl.logging.OcspLogger;
 import ee.ria.ocspcrl.utils.X509Utils;
+import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -14,26 +15,26 @@ import org.bouncycastle.cert.ocsp.RevokedStatus;
 import org.bouncycastle.cert.ocsp.UnknownStatus;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
-
 @Slf4j
 @Component
 public class OcspMapper {
 
-    public OcspLogger.OcspResponseContext toOcspContext(X509CertificateHolder issuerCertificate,
-                                                        CertificateID certificateId,
-                                                        X509CRLHolder crlHolder,
-                                                        CertificateStatus certificateStatus,
-                                                        OCSPResp ocspResp) {
+    public OcspLogger.OcspResponseContext toOcspContext(
+        X509CertificateHolder issuerCertificate,
+        CertificateID certificateId,
+        X509CRLHolder crlHolder,
+        CertificateStatus certificateStatus,
+        OCSPResp ocspResp
+    ) {
         return OcspLogger.OcspResponseContext.builder()
-                .issuerCn(X509Utils.getSubjectCN(issuerCertificate))
-                .serialNumber(certificateId.getSerialNumber().toString(16))
-                .certStatus(getCertificateStatusName(certificateStatus).toString())
-                .producedAt(getProducedAt(ocspResp))
-                .thisUpdate(crlHolder.getThisUpdate())
-                .nextUpdate(crlHolder.getNextUpdate())
-                .crlNumber(X509Utils.getCrlNumber(crlHolder))
-                .build();
+            .issuerCn(X509Utils.getSubjectCN(issuerCertificate))
+            .serialNumber(certificateId.getSerialNumber().toString(16))
+            .certStatus(getCertificateStatusName(certificateStatus).toString())
+            .producedAt(getProducedAt(ocspResp))
+            .thisUpdate(crlHolder.getThisUpdate())
+            .nextUpdate(crlHolder.getNextUpdate())
+            .crlNumber(X509Utils.getCrlNumber(crlHolder))
+            .build();
     }
 
     private static CertificateStatusName getCertificateStatusName(CertificateStatus certificateStatus) {
@@ -54,9 +55,7 @@ public class OcspMapper {
         try {
             basicResponse = (BasicOCSPResp) ocspResp.getResponseObject();
         } catch (OCSPException e) {
-            log.atError()
-                    .setCause(e)
-                    .log("Failed to decode OCSP response");
+            log.atError().setCause(e).log("Failed to decode OCSP response");
         }
         if (basicResponse == null) {
             return null;
@@ -67,6 +66,6 @@ public class OcspMapper {
     public enum CertificateStatusName {
         GOOD,
         REVOKED,
-        UNKNOWN
+        UNKNOWN,
     }
 }

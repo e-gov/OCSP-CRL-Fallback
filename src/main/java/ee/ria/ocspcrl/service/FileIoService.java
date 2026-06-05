@@ -1,13 +1,12 @@
 package ee.ria.ocspcrl.service;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -29,10 +28,7 @@ public class FileIoService {
     public void move(Path source, Path target) throws IOException {
         Files.createDirectories(target.getParent());
 
-        CopyOption[] copyOptions = {
-                StandardCopyOption.ATOMIC_MOVE,
-                StandardCopyOption.REPLACE_EXISTING
-        };
+        CopyOption[] copyOptions = { StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING };
 
         Files.move(source, target, copyOptions);
     }

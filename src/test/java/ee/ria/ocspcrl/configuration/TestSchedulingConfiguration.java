@@ -12,5 +12,4 @@ public class TestSchedulingConfiguration {
     public TaskScheduler noOpTaskScheduler() {
         return new NoOpTaskScheduler();
     }
-
 }
