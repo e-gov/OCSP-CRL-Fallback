@@ -4,6 +4,9 @@ import ee.ria.ocspcrl.CrlCache;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
 import ee.ria.ocspcrl.exception.CrlValidationException;
+import java.security.Security;
+import java.security.cert.CertificateException;
+import java.util.Date;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.cert.CertException;
@@ -14,10 +17,6 @@ import org.bouncycastle.operator.ContentVerifierProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.springframework.stereotype.Service;
-
-import java.security.Security;
-import java.security.cert.CertificateException;
-import java.util.Date;
 
 @Slf4j
 @Service
@@ -39,9 +38,7 @@ public class CrlValidationService {
             log.warn("Failed to validate CRL for {}: {}", chainName, e.getMessage());
             return false;
         } catch (Exception e) {
-            log.atError()
-                    .setCause(e)
-                    .log("Failed to validate CRL for {}", chainName);
+            log.atError().setCause(e).log("Failed to validate CRL for {}", chainName);
             return false;
         }
         return validateNextUpdate(crlHolder, chainName);
@@ -64,16 +61,13 @@ public class CrlValidationService {
             }
         } catch (OperatorCreationException | CertificateException | CertException e) {
             // TODO AUT-2380 Error or warn?
-            log.atWarn()
-                    .setCause(e)
-                    .log();
+            log.atWarn().setCause(e).log();
         }
     }
 
     private boolean validateNextUpdate(X509CRLHolder crlHolder, String chainName) {
         X509CRLHolder previousValidatedCrl = crlCache.getCrl(chainName);
-        if (previousValidatedCrl == null)
-            return true;
+        if (previousValidatedCrl == null) return true;
 
         Date newNextUpdate = crlHolder.getNextUpdate();
         Date previousNextUpdate = previousValidatedCrl.getNextUpdate();

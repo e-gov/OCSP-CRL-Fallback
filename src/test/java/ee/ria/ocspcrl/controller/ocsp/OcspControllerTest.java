@@ -1,36 +1,5 @@
 package ee.ria.ocspcrl.controller.ocsp;
 
-import ee.ria.ocspcrl.BaseIntegrationTest;
-import ee.ria.ocspcrl.config.CrlConfigurationProperties;
-import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
-import ee.ria.ocspcrl.config.CrlConfigurationProperties.CrlDownload;
-import ee.ria.ocspcrl.service.OcspService;
-import ee.ria.ocspcrl.util.CertificateUtils;
-import io.restassured.response.Response;
-import lombok.SneakyThrows;
-import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.ocsp.CertificateID;
-import org.bouncycastle.cert.ocsp.OCSPReq;
-import org.bouncycastle.cert.ocsp.OCSPReqBuilder;
-import org.bouncycastle.cert.ocsp.OCSPResp;
-import org.bouncycastle.cert.ocsp.OCSPRespBuilder;
-import org.bouncycastle.operator.DigestCalculator;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpHeaders;
-import org.springframework.test.context.bean.override.convention.TestBean;
-
-import java.math.BigInteger;
-import java.net.URI;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.util.List;
-
 import static ee.ria.ocspcrl.config.oscp.OcspReqHttpMessageConverter.OCSP_REQUEST_CONTENT_TYPE;
 import static ee.ria.ocspcrl.config.oscp.OcspRespHttpMessageConverter.OCSP_RESPONSE_CONTENT_TYPE;
 import static ee.ria.ocspcrl.util.MockitoUtil.ANSWER_THROW_EXCEPTION;
@@ -51,6 +20,36 @@ import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE;
 import static org.springframework.http.MediaType.ALL_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
+import ee.ria.ocspcrl.BaseIntegrationTest;
+import ee.ria.ocspcrl.config.CrlConfigurationProperties;
+import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
+import ee.ria.ocspcrl.config.CrlConfigurationProperties.CrlDownload;
+import ee.ria.ocspcrl.service.OcspService;
+import ee.ria.ocspcrl.util.CertificateUtils;
+import io.restassured.response.Response;
+import java.math.BigInteger;
+import java.net.URI;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
+import lombok.SneakyThrows;
+import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.ocsp.CertificateID;
+import org.bouncycastle.cert.ocsp.OCSPReq;
+import org.bouncycastle.cert.ocsp.OCSPReqBuilder;
+import org.bouncycastle.cert.ocsp.OCSPResp;
+import org.bouncycastle.cert.ocsp.OCSPRespBuilder;
+import org.bouncycastle.operator.DigestCalculator;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.test.context.bean.override.convention.TestBean;
 
 class OcspControllerTest extends BaseIntegrationTest {
 
@@ -74,19 +73,13 @@ class OcspControllerTest extends BaseIntegrationTest {
                 CERTIFICATE_CHAIN_NAME,
                 ISSUER_CERTIFICATE,
                 new CrlDownload(
-                        URI.create("https://example.org/example.crl").toURL(),
-                        Duration.ofMillis(1),
-                        "<not-used>")
-        );
+                        URI.create("https://example.org/example.crl").toURL(), Duration.ofMillis(1), "<not-used>"));
         CrlConfigurationProperties crlConfigurationProperties = new CrlConfigurationProperties(
                 Duration.ofMillis(1),
                 List.of(certificateChain),
                 mock(Path.class, ANSWER_THROW_EXCEPTION),
                 mock(Path.class, ANSWER_THROW_EXCEPTION));
-        return new OcspController(
-                ocspService,
-                crlConfigurationProperties
-        );
+        return new OcspController(ocspService, crlConfigurationProperties);
     }
 
     @AfterEach
@@ -110,8 +103,7 @@ class OcspControllerTest extends BaseIntegrationTest {
 
         @Test
         void whenInvalidAcceptHeader_notAcceptableReturned() {
-            given()
-                    .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
+            given().header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, APPLICATION_JSON_VALUE)
                     .when()
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
@@ -121,8 +113,7 @@ class OcspControllerTest extends BaseIntegrationTest {
 
         @Test
         void whenInvalidContentTypeHeader_unsupportedMediaTypeReturned() {
-            given()
-                    .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON_VALUE)
+            given().header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON_VALUE)
                     .header(HttpHeaders.ACCEPT, OCSP_RESPONSE_CONTENT_TYPE)
                     .when()
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
@@ -130,11 +121,9 @@ class OcspControllerTest extends BaseIntegrationTest {
                     .statusCode(UNSUPPORTED_MEDIA_TYPE.value());
         }
 
-
         @Test
         void whenRequestBodyNotValidOcspRequest_badRequestReturned() {
-            given()
-                    .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
+            given().header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, OCSP_RESPONSE_CONTENT_TYPE)
                     .when()
                     .body("<not-a-valid-OCSP-request>".getBytes(UTF_8))
@@ -146,8 +135,7 @@ class OcspControllerTest extends BaseIntegrationTest {
         @SneakyThrows
         @Test
         void whenInvalidCertificateChainId_notFoundReturned() {
-            given()
-                    .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
+            given().header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, OCSP_RESPONSE_CONTENT_TYPE)
                     .when()
                     .body(validOcspRequest().getEncoded())
@@ -160,10 +148,10 @@ class OcspControllerTest extends BaseIntegrationTest {
         @SneakyThrows
         void whenServiceCallFails_internalErrorReturned() {
             doThrow(new Exception("OcspService: failed to process OCSP request"))
-                    .when(ocspService).handleRequest(any(), any(), any());
+                    .when(ocspService)
+                    .handleRequest(any(), any(), any());
 
-            given()
-                    .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
+            given().header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, OCSP_RESPONSE_CONTENT_TYPE)
                     .when()
                     .body(validOcspRequest().getEncoded())
@@ -176,11 +164,9 @@ class OcspControllerTest extends BaseIntegrationTest {
         @Test
         void whenServiceCallSucceeds_okReturned() {
             OCSPResp expectedResponse = new OCSPRespBuilder().build(OCSPRespBuilder.SUCCESSFUL, null);
-            doReturn(expectedResponse)
-                    .when(ocspService).handleRequest(any(), any(), any());
+            doReturn(expectedResponse).when(ocspService).handleRequest(any(), any(), any());
 
-            Response actualResponse = given()
-                    .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
+            Response actualResponse = given().header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, OCSP_RESPONSE_CONTENT_TYPE)
                     .when()
                     .body(validOcspRequest().getEncoded())
@@ -199,11 +185,9 @@ class OcspControllerTest extends BaseIntegrationTest {
         @Test
         void whenAcceptHeaderValueIsAny_okReturned() {
             OCSPResp expectedResponse = new OCSPRespBuilder().build(OCSPRespBuilder.SUCCESSFUL, null);
-            doReturn(expectedResponse)
-                    .when(ocspService).handleRequest(any(), any(), any());
+            doReturn(expectedResponse).when(ocspService).handleRequest(any(), any(), any());
 
-            Response actualResponse = given()
-                    .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
+            Response actualResponse = given().header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, ALL_VALUE)
                     .when()
                     .body(validOcspRequest().getEncoded())
@@ -217,15 +201,11 @@ class OcspControllerTest extends BaseIntegrationTest {
 
             assertArrayEquals(expectedResponse.getEncoded(), actualResponse.asByteArray());
         }
-
     }
 
     @SneakyThrows
     private OCSPReq validOcspRequest() {
         CertificateID certificateId = new CertificateID(digestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE);
-        return new OCSPReqBuilder()
-                .addRequest(certificateId)
-                .build();
+        return new OCSPReqBuilder().addRequest(certificateId).build();
     }
-
 }

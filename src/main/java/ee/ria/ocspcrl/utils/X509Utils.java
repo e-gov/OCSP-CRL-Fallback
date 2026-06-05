@@ -1,5 +1,6 @@
 package ee.ria.ocspcrl.utils;
 
+import java.math.BigInteger;
 import lombok.experimental.UtilityClass;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.x500.RDN;
@@ -9,8 +10,6 @@ import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509CertificateHolder;
-
-import java.math.BigInteger;
 
 @UtilityClass
 public class X509Utils {

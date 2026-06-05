@@ -1,9 +1,19 @@
 package ee.ria.ocspcrl.service;
 
+import static ee.ria.ocspcrl.service.OcspService.createNonceExtension;
+import static ee.ria.ocspcrl.service.OcspService.getNonce;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.Mockito.when;
+
 import ee.ria.ocspcrl.CrlCache;
 import ee.ria.ocspcrl.assertion.OCSPRespAssert;
 import ee.ria.ocspcrl.logging.OcspLogger;
 import ee.ria.ocspcrl.util.CertificateUtils;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.asn1.ASN1InputStream;
@@ -31,17 +41,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
-
-import static ee.ria.ocspcrl.service.OcspService.createNonceExtension;
-import static ee.ria.ocspcrl.service.OcspService.getNonce;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.Mockito.when;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
@@ -116,7 +115,7 @@ class OcspServiceTest {
                     .build();
 
             OCSPRequest ocspRequestPrimitive;
-            try (ASN1InputStream asn1InputStream = new ASN1InputStream(validOcspRequest.getEncoded())){
+            try (ASN1InputStream asn1InputStream = new ASN1InputStream(validOcspRequest.getEncoded())) {
                 ocspRequestPrimitive = OCSPRequest.getInstance(asn1InputStream.readObject());
             }
             TBSRequest tbsRequest = ocspRequestPrimitive.getTbsRequest();
@@ -133,8 +132,7 @@ class OcspServiceTest {
         @SneakyThrows
         @Test
         void whenEmptyRequestList_malformedRequestReturned() {
-            OCSPReq ocspRequest = new OCSPReqBuilder()
-                    .build();
+            OCSPReq ocspRequest = new OCSPReqBuilder().build();
 
             OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
@@ -177,8 +175,8 @@ class OcspServiceTest {
         @SneakyThrows
         @Test
         void whenInvalidIssuerNameHash_unknownStatusReturned() {
-            CertID valid = new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE)
-                    .toASN1Primitive();
+            CertID valid =
+                    new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE).toASN1Primitive();
             CertID actual = new CertID(
                     valid.getHashAlgorithm(),
                     new DEROctetString(new byte[valid.getIssuerNameHash().getOctetsLength()]),
@@ -205,8 +203,8 @@ class OcspServiceTest {
         @SneakyThrows
         @Test
         void whenInvalidIssuerKeyHash_malformedRequestReturned() {
-            CertID valid = new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE)
-                    .toASN1Primitive();
+            CertID valid =
+                    new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE).toASN1Primitive();
             CertID actual = new CertID(
                     valid.getHashAlgorithm(),
                     valid.getIssuerNameHash(),
@@ -235,7 +233,7 @@ class OcspServiceTest {
         void whenNonceEmpty_malformedRequestReturned() {
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
-                    .setRequestExtensions(createNonceExtension(new byte[]{}))
+                    .setRequestExtensions(createNonceExtension(new byte[] {}))
                     .build();
 
             OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
@@ -285,8 +283,8 @@ class OcspServiceTest {
         }
 
         // TODO AUT-2455 Fix
-        @Disabled("Loading the CRL files from disk causes OCSPResp.TRY_LATER until the files are loaded." +
-                "Will be fixed in AUT-2455 by creating a new class and mocking its methods.")
+        @Disabled("Loading the CRL files from disk causes OCSPResp.TRY_LATER until the files are loaded."
+                + "Will be fixed in AUT-2455 by creating a new class and mocking its methods.")
         @SneakyThrows
         @Test
         void whenValidOcspRequest_SuccessfulOcspResponseReturned() {

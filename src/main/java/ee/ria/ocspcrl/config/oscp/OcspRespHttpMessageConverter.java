@@ -1,5 +1,7 @@
 package ee.ria.ocspcrl.config.oscp;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import lombok.NonNull;
 import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.springframework.http.HttpInputMessage;
@@ -9,9 +11,6 @@ import org.springframework.http.converter.AbstractHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.io.OutputStream;
 
 @Component
 public class OcspRespHttpMessageConverter extends AbstractHttpMessageConverter<OCSPResp> {
@@ -43,9 +42,8 @@ public class OcspRespHttpMessageConverter extends AbstractHttpMessageConverter<O
         } catch (IOException e) {
             throw new HttpMessageNotWritableException("Failed to encode OCSP response", e);
         }
-        try(OutputStream responseBodyStream = outputMessage.getBody()) {
+        try (OutputStream responseBodyStream = outputMessage.getBody()) {
             responseBodyStream.write(encoded);
         }
     }
-
 }

@@ -5,6 +5,14 @@ import ee.ria.ocspcrl.exception.CertificateChainMismatchException;
 import ee.ria.ocspcrl.exception.CertificateRevokedException;
 import ee.ria.ocspcrl.logging.OcspLogger;
 import jakarta.validation.constraints.NotNull;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.PrivateKey;
+import java.security.Security;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
+import java.util.Date;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -42,15 +50,6 @@ import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.security.PrivateKey;
-import java.security.Security;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.X509Certificate;
-import java.util.Date;
-import java.util.List;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -67,7 +66,8 @@ public class OcspService {
     private final DigestCalculatorProvider digestCalculatorProvider = new BcDigestCalculatorProvider();
 
     @SuppressWarnings({"DataFlowIssue"})
-    public OCSPResp handleRequest(OCSPReq ocspReq, X509CertificateHolder issuerCertificate, String chainName) throws Exception {
+    public OCSPResp handleRequest(OCSPReq ocspReq, X509CertificateHolder issuerCertificate, String chainName)
+            throws Exception {
         Req certRequest;
         byte[] nonce;
 
@@ -85,7 +85,8 @@ public class OcspService {
         try {
             validateIssuer(certRequest, issuerCertificate);
         } catch (CertificateChainMismatchException e) {
-            return createSignedOcspResponse(certRequest.getCertID(), nonce, new UnknownStatus(), OCSPResponseStatus.SUCCESSFUL, null);
+            return createSignedOcspResponse(
+                    certRequest.getCertID(), nonce, new UnknownStatus(), OCSPResponseStatus.SUCCESSFUL, null);
         } catch (Exception e) {
             // For request parsing exceptions, malformed request is returned with HTTP 200
             log.info("Invalid OCSP request", e);
@@ -108,18 +109,27 @@ public class OcspService {
         return createSuccessfulResponse(certRequest, nonce, CertificateStatus.GOOD, crlHolder, issuerCertificate);
     }
 
-    private OCSPResp createSuccessfulResponse(Req certRequest,
-                                              byte[] nonce,
-                                              CertificateStatus certStatus,
-                                              X509CRLHolder crlHolder,
-                                              X509CertificateHolder issuerCertificate) throws Exception {
+    private OCSPResp createSuccessfulResponse(
+            Req certRequest,
+            byte[] nonce,
+            CertificateStatus certStatus,
+            X509CRLHolder crlHolder,
+            X509CertificateHolder issuerCertificate)
+            throws Exception {
         CertificateID certId = certRequest.getCertID();
-        OCSPResp ocspResp = createSignedOcspResponse(certId, nonce, certStatus, OCSPResponseStatus.SUCCESSFUL, crlHolder);
+        OCSPResp ocspResp =
+                createSignedOcspResponse(certId, nonce, certStatus, OCSPResponseStatus.SUCCESSFUL, crlHolder);
         ocspLogger.logSuccessfulResponse(issuerCertificate, certId, crlHolder, certStatus, ocspResp);
         return ocspResp;
     }
 
-    private OCSPResp createSignedOcspResponse(CertificateID certId, byte[] nonce, CertificateStatus certificateStatus, int ocspResponseStatus, X509CRLHolder crlHolder) throws Exception {
+    private OCSPResp createSignedOcspResponse(
+            CertificateID certId,
+            byte[] nonce,
+            CertificateStatus certificateStatus,
+            int ocspResponseStatus,
+            X509CRLHolder crlHolder)
+            throws Exception {
         X509CertificateHolder signingCertHolder = getSigningCertificateHolder();
         ResponderID responderID = new ResponderID(signingCertHolder.getSubject());
         RespID respID = new RespID(responderID);
@@ -130,8 +140,11 @@ public class OcspService {
         return wrapIntoOcspResp(basicResp, ocspResponseStatus);
     }
 
-    private void addRevocationInformation(BasicOCSPRespBuilder signableResponseBuilder, CertificateID certId,
-                                          CertificateStatus certificateStatus, X509CRLHolder crlHolder) {
+    private void addRevocationInformation(
+            BasicOCSPRespBuilder signableResponseBuilder,
+            CertificateID certId,
+            CertificateStatus certificateStatus,
+            X509CRLHolder crlHolder) {
         if (crlHolder == null) {
             signableResponseBuilder.addResponse(certId, certificateStatus);
         } else {
@@ -148,19 +161,14 @@ public class OcspService {
     }
 
     static byte[] getNonce(OCSPReq ocspReq) {
-        ASN1OctetString parsedValue = (ASN1OctetString) ocspReq
-                .getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce)
-                .getParsedValue();
+        ASN1OctetString parsedValue = (ASN1OctetString)
+                ocspReq.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce).getParsedValue();
         return parsedValue.getOctets();
     }
 
     static Extensions createNonceExtension(byte[] nonceValue) throws IOException {
         ExtensionsGenerator extGenerator = new ExtensionsGenerator();
-        extGenerator.addExtension(
-                OCSPObjectIdentifiers.id_pkix_ocsp_nonce,
-                false,
-                new DEROctetString(nonceValue)
-        );
+        extGenerator.addExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce, false, new DEROctetString(nonceValue));
         return extGenerator.generate();
     }
 
@@ -192,16 +200,16 @@ public class OcspService {
         // If support for other algorithms is "free", does it make sense to limit it?
         validateHashAlgorithm(certRequest);
         if (!matchesIssuer(certRequest, issuerCertificate)) {
-            throw new CertificateChainMismatchException("OCSP request `CertID` does not match expected issuer certificate");
+            throw new CertificateChainMismatchException(
+                    "OCSP request `CertID` does not match expected issuer certificate");
         }
     }
 
     private static void validateHashAlgorithm(Req certRequest) {
         ASN1ObjectIdentifier hashAlgOid = certRequest.getCertID().getHashAlgOID();
         if (!OIWObjectIdentifiers.idSHA1.equals(hashAlgOid)) {
-            throw new IllegalArgumentException(
-                    "OCSP request `CertID` `hashAlgorithm was \"" + hashAlgOid.getId() + "\", " +
-                            "only SHA-1 (\"" + OIWObjectIdentifiers.idSHA1.getId() + "\") is supported");
+            throw new IllegalArgumentException("OCSP request `CertID` `hashAlgorithm was \"" + hashAlgOid.getId()
+                    + "\", " + "only SHA-1 (\"" + OIWObjectIdentifiers.idSHA1.getId() + "\") is supported");
         }
     }
 
@@ -231,17 +239,12 @@ public class OcspService {
         return builder.build(ocspResponseStatus, basicResp);
     }
 
-    private BasicOCSPResp signBasicResponse(
-            X509CertificateHolder signingCertHolder,
-            BasicOCSPRespBuilder basicBuilder) throws OCSPException, OperatorCreationException {
+    private BasicOCSPResp signBasicResponse(X509CertificateHolder signingCertHolder, BasicOCSPRespBuilder basicBuilder)
+            throws OCSPException, OperatorCreationException {
         ContentSigner signer = createContentSigner();
         X509CertificateHolder[] certificateChain = {signingCertHolder};
         Date producedAt = new Date();
-        return basicBuilder.build(
-                signer,
-                certificateChain,
-                producedAt
-        );
+        return basicBuilder.build(signer, certificateChain, producedAt);
     }
 
     private void ensureCertificateNotInCrl(CertificateID certId, @NotNull X509CRLHolder crlHolder) {

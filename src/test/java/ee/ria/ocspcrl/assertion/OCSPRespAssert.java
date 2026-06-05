@@ -1,5 +1,7 @@
 package ee.ria.ocspcrl.assertion;
 
+import java.util.Arrays;
+import java.util.Date;
 import org.assertj.core.api.AbstractAssert;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
@@ -15,9 +17,6 @@ import org.bouncycastle.cert.ocsp.RespID;
 import org.bouncycastle.cert.ocsp.RevokedStatus;
 import org.bouncycastle.cert.ocsp.SingleResp;
 import org.bouncycastle.cert.ocsp.UnknownStatus;
-
-import java.util.Arrays;
-import java.util.Date;
 
 public class OCSPRespAssert extends AbstractAssert<OCSPRespAssert, OCSPResp> {
 
@@ -57,7 +56,8 @@ public class OCSPRespAssert extends AbstractAssert<OCSPRespAssert, OCSPResp> {
         }
 
         if (producedAtTime < now - oneHour) {
-            failWithMessage("Expected producedAt <%s> to be within the last hour, but it is older than one hour", producedAt);
+            failWithMessage(
+                    "Expected producedAt <%s> to be within the last hour, but it is older than one hour", producedAt);
         }
 
         return this;
@@ -90,10 +90,9 @@ public class OCSPRespAssert extends AbstractAssert<OCSPRespAssert, OCSPResp> {
         if (keyHash == null) {
             failWithMessage("Expected responderId by key-hash, but OCSP response used name form");
         } else if (!Arrays.equals(expectedKeyHash, keyHash)) {
-            failWithMessage("Expected responder key hash <%s> but was <%s>",
-                    Arrays.toString(expectedKeyHash),
-                    Arrays.toString(keyHash)
-            );
+            failWithMessage(
+                    "Expected responder key hash <%s> but was <%s>",
+                    Arrays.toString(expectedKeyHash), Arrays.toString(keyHash));
         }
         return this;
     }
@@ -148,9 +147,9 @@ public class OCSPRespAssert extends AbstractAssert<OCSPRespAssert, OCSPResp> {
 
         ASN1OctetString actualNonce = (ASN1OctetString) nonceExt.getParsedValue();
         if (!Arrays.equals(expectedNonce, actualNonce.getOctets())) {
-            failWithMessage("Expected nonce <%s> but was <%s>",
-                    Arrays.toString(expectedNonce),
-                    Arrays.toString(actualNonce.getOctets()));
+            failWithMessage(
+                    "Expected nonce <%s> but was <%s>",
+                    Arrays.toString(expectedNonce), Arrays.toString(actualNonce.getOctets()));
         }
         return this;
     }
@@ -198,9 +197,9 @@ public class OCSPRespAssert extends AbstractAssert<OCSPRespAssert, OCSPResp> {
         if (actualStatus == null && clazz != null) {
             failWithMessage("Expected certStatus instance of <%s> but was GOOD (null)", clazz.getSimpleName());
         } else if (actualStatus != null && !clazz.isInstance(actualStatus)) {
-            failWithMessage("Expected certStatus instance of <%s> but was <%s>",
-                    clazz.getSimpleName(),
-                    actualStatus.getClass().getSimpleName());
+            failWithMessage(
+                    "Expected certStatus instance of <%s> but was <%s>",
+                    clazz.getSimpleName(), actualStatus.getClass().getSimpleName());
         }
         return this;
     }
