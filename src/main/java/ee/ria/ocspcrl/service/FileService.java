@@ -3,12 +3,11 @@ package ee.ria.ocspcrl.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.gateway.CrlGateway;
+import java.io.IOException;
+import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.nio.file.Path;
 
 @Service
 @RequiredArgsConstructor
@@ -24,18 +23,22 @@ public class FileService {
         Path crlPath = getCrlTargetFilePath(chainName, fileType);
         Path headerPath = getHeadersTargetFilePath(chainName, fileType);
 
-        fileIoService.writeToFile(crlPath, response.crl());
-        serializeToFile(headerPath, response.crlHeaders());
+        fileIoService
+                .writeToFile(crlPath, response
+                        .crl());
+        serializeToFile(headerPath, response
+                .crlHeaders());
     }
 
-    public CrlGateway.CrlHeaders deserializeCrlHeadersFromFile(String chainName, FileType fileType)
-            throws IOException {
+    public CrlGateway.CrlHeaders deserializeCrlHeadersFromFile(String chainName, FileType fileType) throws IOException {
         Path filePath = getHeadersTargetFilePath(chainName, fileType);
         if (filePath == null) {
             return null;
         }
-        byte[] objectBytes = fileIoService.readFromFile(filePath);
-        return jsonMapper.readValue(objectBytes, CrlGateway.CrlHeaders.class);
+        byte[] objectBytes = fileIoService
+                .readFromFile(filePath);
+        return jsonMapper
+                .readValue(objectBytes, CrlGateway.CrlHeaders.class);
     }
 
     public X509CRLHolder deserializeCrlFromFile(String chainName, FileType fileType) throws IOException {
@@ -43,7 +46,8 @@ public class FileService {
         if (filePath == null) {
             return null;
         }
-        byte[] crlBytes = fileIoService.readFromFile(filePath);
+        byte[] crlBytes = fileIoService
+                .readFromFile(filePath);
         return new X509CRLHolder(crlBytes);
     }
 
@@ -61,14 +65,16 @@ public class FileService {
         Path source = getCrlTargetFilePath(chainName, FileType.TEMP);
         Path target = getCrlTargetFilePath(chainName, FileType.VALIDATED);
 
-        fileIoService.move(source, target);
+        fileIoService
+                .move(source, target);
     }
 
     public void moveHeaders(String chainName) throws IOException {
         Path source = getHeadersTargetFilePath(chainName, FileType.TEMP);
         Path target = getHeadersTargetFilePath(chainName, FileType.VALIDATED);
 
-        fileIoService.move(source, target);
+        fileIoService
+                .move(source, target);
     }
 
     private Path getCrlTargetFilePath(String chainName, FileType fileType) {
@@ -94,39 +100,51 @@ public class FileService {
     private boolean headersFileExists(String chainName, FileType fileType) {
         Path filePath = getHeadersTargetFilePath(chainName, fileType);
 
-        return fileIoService.exists(filePath);
+        return fileIoService
+                .exists(filePath);
     }
 
     private boolean crlFileExists(String chainName, FileType fileType) {
         Path filePath = getCrlTargetFilePath(chainName, fileType);
 
-        return fileIoService.exists(filePath);
+        return fileIoService
+                .exists(filePath);
     }
 
     private void serializeToFile(Path filePath, Object object) throws IOException {
-        byte[] objectBytes = jsonMapper.writeValueAsBytes(object);
+        byte[] objectBytes = jsonMapper
+                .writeValueAsBytes(object);
 
-        fileIoService.writeToFile(filePath, objectBytes);
+        fileIoService
+                .writeToFile(filePath, objectBytes);
     }
 
     private Path getHeadersTmpTargetFilePath(String chainName) {
         String fileName = chainName + ".headers.tmp";
-        return properties.tmpPath().resolve(fileName);
+        return properties
+                .tmpPath()
+                .resolve(fileName);
     }
 
     private Path getHeadersValidatedTargetFilePath(String chainName) {
         String fileName = chainName + ".headers";
-        return properties.crlPath().resolve(fileName);
+        return properties
+                .crlPath()
+                .resolve(fileName);
     }
 
     private Path getCrlTmpTargetFilePath(String chainName) {
         String fileName = chainName + ".crl.tmp";
-        return properties.tmpPath().resolve(fileName);
+        return properties
+                .tmpPath()
+                .resolve(fileName);
     }
 
     private Path getCrlValidatedTargetFilePath(String chainName) {
         String fileName = chainName + ".crl";
-        return properties.crlPath().resolve(fileName);
+        return properties
+                .crlPath()
+                .resolve(fileName);
     }
 
     public enum FileType {

@@ -7,12 +7,11 @@ import ee.ria.ocspcrl.config.CrlConfigurationProperties.CrlDownload;
 import ee.ria.ocspcrl.gateway.CrlGateway;
 import ee.ria.ocspcrl.gateway.CrlGatewayFactory;
 import ee.ria.ocspcrl.service.FileService;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
 
 @Slf4j
 @Service
@@ -26,71 +25,115 @@ public class CrlDownloadService {
     private final CrlCache crlCache;
 
     public void downloadAllCrls() {
-        for (var chain : properties.certificateChains()) {
+        for (var chain : properties
+                .certificateChains()) {
             try {
                 downloadCrl(chain);
             } catch (Exception e) {
-                log.atError()
+                log
+                        .atError()
                         .setCause(e)
-                        .log("Failed to download CRL for {}", chain.name());
+                        .log("Failed to download CRL for {}", chain
+                                .name());
             }
         }
     }
 
     private void downloadCrl(CertificateChain chain) throws IOException {
-        CrlDownload crl = chain.crlDownload();
-        CrlGateway gateway = crlGatewayFactory.create(crl);
-        log.info("Downloading file: {}", crl.url());
+        CrlDownload crl = chain
+                .crlDownload();
+        CrlGateway gateway = crlGatewayFactory
+                .create(crl);
+        log
+                .info("Downloading file: {}", crl
+                        .url());
 
-        CrlGateway.CrlResponse response = gateway.downloadFile(getRequestHeaders(chain.name()));
+        CrlGateway.CrlResponse response = gateway
+                .downloadFile(getRequestHeaders(chain
+                        .name()));
 
         if (response instanceof CrlGateway.CrlFileNotModifiedResponse) {
-            log.info("CRL has no modifications: {}", chain.name());
+            log
+                    .info("CRL has no modifications: {}", chain
+                            .name());
             return;
         }
 
         if (!(response instanceof CrlGateway.NewCrlFileResponse newCrlFileResponse)) {
-            throw new RuntimeException("Unexpected response type: " + response.getClass().getName());
+            throw new RuntimeException("Unexpected response type: " + response
+                    .getClass()
+                    .getName());
         }
 
-        if (newCrlFileResponse.crl() == null) {
-            throw new RuntimeException("Received empty content from URL: " + crl.url());
+        if (newCrlFileResponse
+                .crl() == null) {
+            throw new RuntimeException("Received empty content from URL: " + crl
+                    .url());
         }
 
-        fileService.serializeToFile(chain.name(), newCrlFileResponse, FileService.FileType.TEMP);
-        log.info("Downloaded file: {}", crl.url());
+        fileService
+                .serializeToFile(chain
+                        .name(), newCrlFileResponse, FileService.FileType.TEMP);
+        log
+                .info("Downloaded file: {}", crl
+                        .url());
 
-        X509CRLHolder crlHolder = new X509CRLHolder(newCrlFileResponse.crl());
-        if (!crlValidationService.shouldUse(chain.name(), crlHolder)) {
-            log.debug("Aborted downloading CRL for chain {}", chain.name());
+        X509CRLHolder crlHolder = new X509CRLHolder(newCrlFileResponse
+                .crl());
+        if (!crlValidationService
+                .shouldUse(chain
+                        .name(), crlHolder)) {
+            log
+                    .debug("Aborted downloading CRL for chain {}", chain
+                            .name());
             return;
         }
 
-        crlCache.updateCrlAndHeaders(chain.name(), crlHolder, newCrlFileResponse.crlHeaders());
+        crlCache
+                .updateCrlAndHeaders(chain
+                        .name(), crlHolder,
+                        newCrlFileResponse
+                                .crlHeaders());
 
-        log.info("Moving CRL from tmp to validated directory: {}", chain.name());
-        fileService.moveValidCrl(chain.name());
-        log.info("Moved CRL to validated directory: {}",  chain.name());
+        log
+                .info("Moving CRL from tmp to validated directory: {}", chain
+                        .name());
+        fileService
+                .moveValidCrl(chain
+                        .name());
+        log
+                .info("Moved CRL to validated directory: {}", chain
+                        .name());
 
-        log.info("Moving headers from tmp to validated directory: {}", chain.name());
-        fileService.moveHeaders(chain.name());
-        log.info("Moved headers to validated directory: {}", chain.name());
+        log
+                .info("Moving headers from tmp to validated directory: {}", chain
+                        .name());
+        fileService
+                .moveHeaders(chain
+                        .name());
+        log
+                .info("Moved headers to validated directory: {}", chain
+                        .name());
     }
 
     private CrlGateway.CrlHeaders getRequestHeaders(String chainName) {
-        CrlGateway.CrlHeaders headersFromCrlCache = crlCache.getCrlHeaders(chainName);
+        CrlGateway.CrlHeaders headersFromCrlCache = crlCache
+                .getCrlHeaders(chainName);
         if (headersFromCrlCache != null) {
             return headersFromCrlCache;
         }
 
-        if (!fileService.shouldReadHeadersFromFile(chainName, FileService.FileType.VALIDATED)) {
+        if (!fileService
+                .shouldReadHeadersFromFile(chainName, FileService.FileType.VALIDATED)) {
             return null;
         }
 
         try {
-            return fileService.deserializeCrlHeadersFromFile(chainName, FileService.FileType.VALIDATED);
+            return fileService
+                    .deserializeCrlHeadersFromFile(chainName, FileService.FileType.VALIDATED);
         } catch (IOException e) {
-            log.error("Could not read headers from local file for chain {}", chainName);
+            log
+                    .error("Could not read headers from local file for chain {}", chainName);
             return null;
         }
     }

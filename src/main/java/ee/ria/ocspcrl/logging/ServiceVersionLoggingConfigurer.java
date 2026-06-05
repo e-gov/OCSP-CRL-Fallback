@@ -19,16 +19,22 @@ public class ServiceVersionLoggingConfigurer {
     public ServiceVersionLoggingConfigurer(BuildProperties buildProperties, GitProperties gitProperties) {
         String version = getVersion(buildProperties, gitProperties);
 
-        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-        context.putProperty("service.version", version);
+        LoggerContext context = (LoggerContext) LoggerFactory
+                .getILoggerFactory();
+        context
+                .putProperty("service.version", version);
 
-        log.info("Application version: {}", version);
+        log
+                .info("Application version: {}", version);
     }
 
     private String getVersion(BuildProperties buildProperties, GitProperties gitProperties) {
-        String versionWithoutBuildNumber = buildProperties.getVersion();
-        String buildNumber = gitProperties.get("build.number");
-        if (StringUtils.isNotEmpty(buildNumber)) {
+        String versionWithoutBuildNumber = buildProperties
+                .getVersion();
+        String buildNumber = gitProperties
+                .get("build.number");
+        if (StringUtils
+                .isNotEmpty(buildNumber)) {
             return versionWithoutBuildNumber + "-" + buildNumber;
         }
         return versionWithoutBuildNumber;

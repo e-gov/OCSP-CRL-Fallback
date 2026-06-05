@@ -1,36 +1,5 @@
 package ee.ria.ocspcrl.controller.ocsp;
 
-import ee.ria.ocspcrl.BaseIntegrationTest;
-import ee.ria.ocspcrl.config.CrlConfigurationProperties;
-import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
-import ee.ria.ocspcrl.config.CrlConfigurationProperties.CrlDownload;
-import ee.ria.ocspcrl.service.OcspService;
-import ee.ria.ocspcrl.util.CertificateUtils;
-import io.restassured.response.Response;
-import lombok.SneakyThrows;
-import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.ocsp.CertificateID;
-import org.bouncycastle.cert.ocsp.OCSPReq;
-import org.bouncycastle.cert.ocsp.OCSPReqBuilder;
-import org.bouncycastle.cert.ocsp.OCSPResp;
-import org.bouncycastle.cert.ocsp.OCSPRespBuilder;
-import org.bouncycastle.operator.DigestCalculator;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpHeaders;
-import org.springframework.test.context.bean.override.convention.TestBean;
-
-import java.math.BigInteger;
-import java.net.URI;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.util.List;
-
 import static ee.ria.ocspcrl.config.oscp.OcspReqHttpMessageConverter.OCSP_REQUEST_CONTENT_TYPE;
 import static ee.ria.ocspcrl.config.oscp.OcspRespHttpMessageConverter.OCSP_RESPONSE_CONTENT_TYPE;
 import static ee.ria.ocspcrl.util.MockitoUtil.ANSWER_THROW_EXCEPTION;
@@ -52,41 +21,67 @@ import static org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE;
 import static org.springframework.http.MediaType.ALL_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
+import ee.ria.ocspcrl.BaseIntegrationTest;
+import ee.ria.ocspcrl.config.CrlConfigurationProperties;
+import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
+import ee.ria.ocspcrl.config.CrlConfigurationProperties.CrlDownload;
+import ee.ria.ocspcrl.service.OcspService;
+import ee.ria.ocspcrl.util.CertificateUtils;
+import io.restassured.response.Response;
+import java.math.BigInteger;
+import java.net.URI;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
+import lombok.SneakyThrows;
+import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.ocsp.CertificateID;
+import org.bouncycastle.cert.ocsp.OCSPReq;
+import org.bouncycastle.cert.ocsp.OCSPReqBuilder;
+import org.bouncycastle.cert.ocsp.OCSPResp;
+import org.bouncycastle.cert.ocsp.OCSPRespBuilder;
+import org.bouncycastle.operator.DigestCalculator;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.test.context.bean.override.convention.TestBean;
+
 class OcspControllerTest extends BaseIntegrationTest {
 
     private static final String CERTIFICATE_CHAIN_NAME = "esteid2025";
-    private static final X509CertificateHolder ISSUER_CERTIFICATE =
-            CertificateUtils.loadPemCertificateFromClasspath("/certificates/eid/testEEGovCA2025.crt.pem");
+    private static final X509CertificateHolder ISSUER_CERTIFICATE = CertificateUtils
+            .loadPemCertificateFromClasspath("/certificates/eid/testEEGovCA2025.crt.pem");
     private static OcspService ocspService;
 
     @TestBean
     private OcspController ocspController;
 
-    private final DigestCalculator digestCalculator =
-            new BcDigestCalculatorProvider().get(new AlgorithmIdentifier(OIWObjectIdentifiers.idSHA1));
+    private final DigestCalculator digestCalculator = new BcDigestCalculatorProvider()
+            .get(new AlgorithmIdentifier(OIWObjectIdentifiers.idSHA1));
 
     OcspControllerTest() throws OperatorCreationException {}
 
     @SneakyThrows
     private static OcspController ocspController() {
         ocspService = mock(OcspService.class, ANSWER_THROW_EXCEPTION);
-        CertificateChain certificateChain = new CertificateChain(
-                CERTIFICATE_CHAIN_NAME,
-                ISSUER_CERTIFICATE,
-                new CrlDownload(
-                        URI.create("https://example.org/example.crl").toURL(),
-                        Duration.ofMillis(1),
-                        "<not-used>")
-        );
-        CrlConfigurationProperties crlConfigurationProperties = new CrlConfigurationProperties(
-                Duration.ofMillis(1),
-                List.of(certificateChain),
-                mock(Path.class, ANSWER_THROW_EXCEPTION),
-                mock(Path.class, ANSWER_THROW_EXCEPTION));
-        return new OcspController(
-                ocspService,
-                crlConfigurationProperties
-        );
+        CertificateChain certificateChain = new CertificateChain(CERTIFICATE_CHAIN_NAME, ISSUER_CERTIFICATE,
+                new CrlDownload(URI
+                        .create("https://example.org/example.crl")
+                        .toURL(),
+                        Duration
+                                .ofMillis(1),
+                        "<not-used>"));
+        CrlConfigurationProperties crlConfigurationProperties = new CrlConfigurationProperties(Duration
+                .ofMillis(1),
+                List
+                        .of(certificateChain),
+                mock(Path.class, ANSWER_THROW_EXCEPTION), mock(Path.class, ANSWER_THROW_EXCEPTION));
+        return new OcspController(ocspService, crlConfigurationProperties);
     }
 
     @AfterEach
@@ -105,7 +100,8 @@ class OcspControllerTest extends BaseIntegrationTest {
                     .when()
                     .get("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
                     .then()
-                    .statusCode(METHOD_NOT_ALLOWED.value());
+                    .statusCode(METHOD_NOT_ALLOWED
+                            .value());
         }
 
         @Test
@@ -116,7 +112,8 @@ class OcspControllerTest extends BaseIntegrationTest {
                     .when()
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
                     .then()
-                    .statusCode(NOT_ACCEPTABLE.value());
+                    .statusCode(NOT_ACCEPTABLE
+                            .value());
         }
 
         @Test
@@ -127,9 +124,9 @@ class OcspControllerTest extends BaseIntegrationTest {
                     .when()
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
                     .then()
-                    .statusCode(UNSUPPORTED_MEDIA_TYPE.value());
+                    .statusCode(UNSUPPORTED_MEDIA_TYPE
+                            .value());
         }
-
 
         @Test
         void whenRequestBodyNotValidOcspRequest_badRequestReturned() {
@@ -137,10 +134,12 @@ class OcspControllerTest extends BaseIntegrationTest {
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, OCSP_RESPONSE_CONTENT_TYPE)
                     .when()
-                    .body("<not-a-valid-OCSP-request>".getBytes(UTF_8))
+                    .body("<not-a-valid-OCSP-request>"
+                            .getBytes(UTF_8))
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
                     .then()
-                    .statusCode(BAD_REQUEST.value());
+                    .statusCode(BAD_REQUEST
+                            .value());
         }
 
         @SneakyThrows
@@ -150,72 +149,91 @@ class OcspControllerTest extends BaseIntegrationTest {
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, OCSP_RESPONSE_CONTENT_TYPE)
                     .when()
-                    .body(validOcspRequest().getEncoded())
+                    .body(validOcspRequest()
+                            .getEncoded())
                     .post("/ocsp/{chainId}", "invalid-chainId")
                     .then()
-                    .statusCode(NOT_FOUND.value());
+                    .statusCode(NOT_FOUND
+                            .value());
         }
 
         @Test
         @SneakyThrows
         void whenServiceCallFails_internalErrorReturned() {
             doThrow(new Exception("OcspService: failed to process OCSP request"))
-                    .when(ocspService).handleRequest(any(), any(), any());
+                    .when(ocspService)
+                    .handleRequest(any(), any(), any());
 
             given()
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, OCSP_RESPONSE_CONTENT_TYPE)
                     .when()
-                    .body(validOcspRequest().getEncoded())
+                    .body(validOcspRequest()
+                            .getEncoded())
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
                     .then()
-                    .statusCode(INTERNAL_SERVER_ERROR.value());
+                    .statusCode(INTERNAL_SERVER_ERROR
+                            .value());
         }
 
         @SneakyThrows
         @Test
         void whenServiceCallSucceeds_okReturned() {
-            OCSPResp expectedResponse = new OCSPRespBuilder().build(OCSPRespBuilder.SUCCESSFUL, null);
+            OCSPResp expectedResponse = new OCSPRespBuilder()
+                    .build(OCSPRespBuilder.SUCCESSFUL, null);
             doReturn(expectedResponse)
-                    .when(ocspService).handleRequest(any(), any(), any());
+                    .when(ocspService)
+                    .handleRequest(any(), any(), any());
 
             Response actualResponse = given()
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, OCSP_RESPONSE_CONTENT_TYPE)
                     .when()
-                    .body(validOcspRequest().getEncoded())
+                    .body(validOcspRequest()
+                            .getEncoded())
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
                     .then()
-                    .statusCode(OK.value())
+                    .statusCode(OK
+                            .value())
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_RESPONSE_CONTENT_TYPE)
                     .header(HttpHeaders.CONTENT_LENGTH, "5")
                     .extract()
                     .response();
 
-            assertArrayEquals(expectedResponse.getEncoded(), actualResponse.asByteArray());
+            assertArrayEquals(expectedResponse
+                    .getEncoded(),
+                    actualResponse
+                            .asByteArray());
         }
 
         @SneakyThrows
         @Test
         void whenAcceptHeaderValueIsAny_okReturned() {
-            OCSPResp expectedResponse = new OCSPRespBuilder().build(OCSPRespBuilder.SUCCESSFUL, null);
+            OCSPResp expectedResponse = new OCSPRespBuilder()
+                    .build(OCSPRespBuilder.SUCCESSFUL, null);
             doReturn(expectedResponse)
-                    .when(ocspService).handleRequest(any(), any(), any());
+                    .when(ocspService)
+                    .handleRequest(any(), any(), any());
 
             Response actualResponse = given()
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_REQUEST_CONTENT_TYPE)
                     .header(HttpHeaders.ACCEPT, ALL_VALUE)
                     .when()
-                    .body(validOcspRequest().getEncoded())
+                    .body(validOcspRequest()
+                            .getEncoded())
                     .post("/ocsp/{chainId}", CERTIFICATE_CHAIN_NAME)
                     .then()
-                    .statusCode(OK.value())
+                    .statusCode(OK
+                            .value())
                     .header(HttpHeaders.CONTENT_TYPE, OCSP_RESPONSE_CONTENT_TYPE)
                     .header(HttpHeaders.CONTENT_LENGTH, "5")
                     .extract()
                     .response();
 
-            assertArrayEquals(expectedResponse.getEncoded(), actualResponse.asByteArray());
+            assertArrayEquals(expectedResponse
+                    .getEncoded(),
+                    actualResponse
+                            .asByteArray());
         }
 
     }

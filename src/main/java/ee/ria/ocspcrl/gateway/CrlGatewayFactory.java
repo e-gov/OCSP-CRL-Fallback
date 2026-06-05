@@ -11,9 +11,10 @@ public class CrlGatewayFactory {
 
     private final CrlRestClientFactory crlRestClientFactory;
 
-    //TODO AUT-2429 Cache gateways
+    // TODO AUT-2429 Cache gateways
     public CrlGateway create(CrlConfigurationProperties.CrlDownload crlDownload) {
-        RestClient restClient = crlRestClientFactory.create(crlDownload);
+        RestClient restClient = crlRestClientFactory
+                .create(crlDownload);
         return new CrlGateway(restClient);
     }
 

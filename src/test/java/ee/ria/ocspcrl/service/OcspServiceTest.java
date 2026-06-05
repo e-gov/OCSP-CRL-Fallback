@@ -1,9 +1,19 @@
 package ee.ria.ocspcrl.service;
 
+import static ee.ria.ocspcrl.service.OcspService.createNonceExtension;
+import static ee.ria.ocspcrl.service.OcspService.getNonce;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.Mockito.when;
+
 import ee.ria.ocspcrl.CrlCache;
 import ee.ria.ocspcrl.assertion.OCSPRespAssert;
 import ee.ria.ocspcrl.logging.OcspLogger;
 import ee.ria.ocspcrl.util.CertificateUtils;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.asn1.ASN1InputStream;
@@ -32,33 +42,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
-
-import static ee.ria.ocspcrl.service.OcspService.createNonceExtension;
-import static ee.ria.ocspcrl.service.OcspService.getNonce;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.Mockito.when;
-
 @Slf4j
 @ExtendWith(MockitoExtension.class)
 class OcspServiceTest {
 
-    private static final X509CertificateHolder ISSUER_CERTIFICATE =
-            CertificateUtils.loadPemCertificateFromClasspath("/certificates/eid/testEEGovCA2025.crt.pem");
-    private static final X509Certificate SIGNING_CERTIFICATE =
-            CertificateUtils.loadPemAsX509CertificateFromClasspath("/certificates/ocsp/ocsp.crt.pem");
+    private static final X509CertificateHolder ISSUER_CERTIFICATE = CertificateUtils
+            .loadPemCertificateFromClasspath("/certificates/eid/testEEGovCA2025.crt.pem");
+    private static final X509Certificate SIGNING_CERTIFICATE = CertificateUtils
+            .loadPemAsX509CertificateFromClasspath("/certificates/ocsp/ocsp.crt.pem");
     private static final String SIGNING_CERTIFICATE_DN = "CN=test-ocsp";
-    private static final PrivateKey SIGNING_KEY =
-            CertificateUtils.loadECPrivateKeyFromClasspath("/certificates/ocsp/ocsp.key.pem");
-    private static final byte[] NONCE = "test-nonce-value".getBytes(StandardCharsets.UTF_8);
+    private static final PrivateKey SIGNING_KEY = CertificateUtils
+            .loadECPrivateKeyFromClasspath("/certificates/ocsp/ocsp.key.pem");
+    private static final byte[] NONCE = "test-nonce-value"
+            .getBytes(StandardCharsets.UTF_8);
     private static final String CHAIN_NAME = "test_esteid2025";
 
-    private final DigestCalculator sha1DigestCalculator =
-            new BcDigestCalculatorProvider().get(new AlgorithmIdentifier(OIWObjectIdentifiers.idSHA1));
+    private final DigestCalculator sha1DigestCalculator = new BcDigestCalculatorProvider()
+            .get(new AlgorithmIdentifier(OIWObjectIdentifiers.idSHA1));
 
     @Mock
     private OcspKeyService keyService;
@@ -84,9 +84,11 @@ class OcspServiceTest {
         @SneakyThrows
         @Test
         void whenNullOcspRequest_malformedRequestReturned() {
-            OCSPResp ocspResponse = ocspService.handleRequest(null, ISSUER_CERTIFICATE, CHAIN_NAME);
+            OCSPResp ocspResponse = ocspService
+                    .handleRequest(null, ISSUER_CERTIFICATE, CHAIN_NAME);
 
-            OCSPRespAssert.assertThat(ocspResponse)
+            OCSPRespAssert
+                    .assertThat(ocspResponse)
                     .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
                     .hasNoResponseObject();
         }
@@ -94,18 +96,22 @@ class OcspServiceTest {
         @SneakyThrows
         @Test
         void whenNullIssuerCertificate_malformedRequestReturned() {
-            OCSPReq ocspRequest = new OCSPReqBuilder().build();
+            OCSPReq ocspRequest = new OCSPReqBuilder()
+                    .build();
 
-            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, null, CHAIN_NAME);
+            OCSPResp ocspResponse = ocspService
+                    .handleRequest(ocspRequest, null, CHAIN_NAME);
 
-            OCSPRespAssert.assertThat(ocspResponse)
+            OCSPRespAssert
+                    .assertThat(ocspResponse)
                     .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
                     .hasNoResponseObject();
         }
 
         @SneakyThrows
         @Test
-        /* Bouncy Castle does not provide a simple way to have a version other than `1`, so we need to do some trickery
+        /*
+         * Bouncy Castle does not provide a simple way to have a version other than `1`, so we need to do some trickery
          * in order to have a different version number.
          */
         void whenInvalidOcspVersion_malformedRequestReturned() {
@@ -116,16 +122,23 @@ class OcspServiceTest {
                     .build();
 
             OCSPRequest ocspRequestPrimitive;
-            try (ASN1InputStream asn1InputStream = new ASN1InputStream(validOcspRequest.getEncoded())){
-                ocspRequestPrimitive = OCSPRequest.getInstance(asn1InputStream.readObject());
+            try (ASN1InputStream asn1InputStream = new ASN1InputStream(validOcspRequest
+                    .getEncoded())) {
+                ocspRequestPrimitive = OCSPRequest
+                        .getInstance(asn1InputStream
+                                .readObject());
             }
-            TBSRequest tbsRequest = ocspRequestPrimitive.getTbsRequest();
-            ReflectionTestUtils.setField(tbsRequest, "version", v2);
+            TBSRequest tbsRequest = ocspRequestPrimitive
+                    .getTbsRequest();
+            ReflectionTestUtils
+                    .setField(tbsRequest, "version", v2);
             OCSPReq ocspRequest = new OCSPReq(ocspRequestPrimitive);
 
-            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
+            OCSPResp ocspResponse = ocspService
+                    .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
-            OCSPRespAssert.assertThat(ocspResponse)
+            OCSPRespAssert
+                    .assertThat(ocspResponse)
                     .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
                     .hasNoResponseObject();
         }
@@ -136,9 +149,11 @@ class OcspServiceTest {
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .build();
 
-            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
+            OCSPResp ocspResponse = ocspService
+                    .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
-            OCSPRespAssert.assertThat(ocspResponse)
+            OCSPRespAssert
+                    .assertThat(ocspResponse)
                     .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
                     .hasNoResponseObject();
         }
@@ -151,9 +166,11 @@ class OcspServiceTest {
                     .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.TWO))
                     .build();
 
-            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
+            OCSPResp ocspResponse = ocspService
+                    .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
-            OCSPRespAssert.assertThat(ocspResponse)
+            OCSPRespAssert
+                    .assertThat(ocspResponse)
                     .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
                     .hasNoResponseObject();
         }
@@ -161,15 +178,17 @@ class OcspServiceTest {
         @SneakyThrows
         @Test
         void whenUnsupportedHashAlgorithm_malformedRequestReturned() {
-            DigestCalculator md5DigestCalculator =
-                    new BcDigestCalculatorProvider().get(new AlgorithmIdentifier(PKCSObjectIdentifiers.md5));
+            DigestCalculator md5DigestCalculator = new BcDigestCalculatorProvider()
+                    .get(new AlgorithmIdentifier(PKCSObjectIdentifiers.md5));
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .addRequest(new CertificateID(md5DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
                     .build();
 
-            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
+            OCSPResp ocspResponse = ocspService
+                    .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
-            OCSPRespAssert.assertThat(ocspResponse)
+            OCSPRespAssert
+                    .assertThat(ocspResponse)
                     .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
                     .hasNoResponseObject();
         }
@@ -179,21 +198,31 @@ class OcspServiceTest {
         void whenInvalidIssuerNameHash_unknownStatusReturned() {
             CertID valid = new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE)
                     .toASN1Primitive();
-            CertID actual = new CertID(
-                    valid.getHashAlgorithm(),
-                    new DEROctetString(new byte[valid.getIssuerNameHash().getOctetsLength()]),
-                    valid.getIssuerKeyHash(),
-                    valid.getSerialNumber());
+            CertID actual = new CertID(valid
+                    .getHashAlgorithm(),
+                    new DEROctetString(new byte[valid
+                            .getIssuerNameHash()
+                            .getOctetsLength()]),
+                    valid
+                            .getIssuerKeyHash(),
+                    valid
+                            .getSerialNumber());
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .addRequest(new CertificateID(actual))
                     .setRequestExtensions(createNonceExtension(NONCE))
                     .build();
-            when(keyService.getOcspSigningCert()).thenReturn(SIGNING_CERTIFICATE);
-            when(keyService.getOcspSigningKey()).thenReturn(SIGNING_KEY);
+            when(keyService
+                    .getOcspSigningCert())
+                    .thenReturn(SIGNING_CERTIFICATE);
+            when(keyService
+                    .getOcspSigningKey())
+                    .thenReturn(SIGNING_KEY);
 
-            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
+            OCSPResp ocspResponse = ocspService
+                    .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
-            OCSPRespAssert.assertThat(ocspResponse)
+            OCSPRespAssert
+                    .assertThat(ocspResponse)
                     .hasResponseStatus(OCSPResp.SUCCESSFUL)
                     .hasSigningCertificateSubject(SIGNING_CERTIFICATE_DN)
                     .hasResponderIdByName(SIGNING_CERTIFICATE_DN)
@@ -207,21 +236,31 @@ class OcspServiceTest {
         void whenInvalidIssuerKeyHash_malformedRequestReturned() {
             CertID valid = new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE)
                     .toASN1Primitive();
-            CertID actual = new CertID(
-                    valid.getHashAlgorithm(),
-                    valid.getIssuerNameHash(),
-                    new DEROctetString(new byte[valid.getIssuerKeyHash().getOctetsLength()]),
-                    valid.getSerialNumber());
+            CertID actual = new CertID(valid
+                    .getHashAlgorithm(),
+                    valid
+                            .getIssuerNameHash(),
+                    new DEROctetString(new byte[valid
+                            .getIssuerKeyHash()
+                            .getOctetsLength()]),
+                    valid
+                            .getSerialNumber());
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .addRequest(new CertificateID(actual))
                     .setRequestExtensions(createNonceExtension(NONCE))
                     .build();
-            when(keyService.getOcspSigningCert()).thenReturn(SIGNING_CERTIFICATE);
-            when(keyService.getOcspSigningKey()).thenReturn(SIGNING_KEY);
+            when(keyService
+                    .getOcspSigningCert())
+                    .thenReturn(SIGNING_CERTIFICATE);
+            when(keyService
+                    .getOcspSigningKey())
+                    .thenReturn(SIGNING_KEY);
 
-            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
+            OCSPResp ocspResponse = ocspService
+                    .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
-            OCSPRespAssert.assertThat(ocspResponse)
+            OCSPRespAssert
+                    .assertThat(ocspResponse)
                     .hasResponseStatus(OCSPResp.SUCCESSFUL)
                     .hasSigningCertificateSubject(SIGNING_CERTIFICATE_DN)
                     .hasResponderIdByName(SIGNING_CERTIFICATE_DN)
@@ -235,12 +274,14 @@ class OcspServiceTest {
         void whenNonceEmpty_malformedRequestReturned() {
             OCSPReq ocspRequest = new OCSPReqBuilder()
                     .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
-                    .setRequestExtensions(createNonceExtension(new byte[]{}))
+                    .setRequestExtensions(createNonceExtension(new byte[] {}))
                     .build();
 
-            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
+            OCSPResp ocspResponse = ocspService
+                    .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
-            OCSPRespAssert.assertThat(ocspResponse)
+            OCSPRespAssert
+                    .assertThat(ocspResponse)
                     .hasResponseStatus(OCSPResp.MALFORMED_REQUEST)
                     .hasNoResponseObject();
         }
@@ -254,7 +295,8 @@ class OcspServiceTest {
                     .build();
 
             assertThatNullPointerException()
-                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME));
+                    .isThrownBy(() -> ocspService
+                            .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME));
         }
 
         @SneakyThrows
@@ -264,10 +306,13 @@ class OcspServiceTest {
                     .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
                     .setRequestExtensions(createNonceExtension(NONCE))
                     .build();
-            when(keyService.getOcspSigningCert()).thenReturn(SIGNING_CERTIFICATE);
+            when(keyService
+                    .getOcspSigningCert())
+                    .thenReturn(SIGNING_CERTIFICATE);
 
             assertThatExceptionOfType(OperatorCreationException.class)
-                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME))
+                    .isThrownBy(() -> ocspService
+                            .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME))
                     .withMessageContaining("cannot create signer: cannot identify EC private key");
         }
 
@@ -280,13 +325,14 @@ class OcspServiceTest {
                     .build();
 
             assertThatNullPointerException()
-                    .isThrownBy(() -> ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME))
+                    .isThrownBy(() -> ocspService
+                            .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME))
                     .withMessageContaining("\"signingCert\" is null");
         }
 
         // TODO AUT-2455 Fix
-        @Disabled("Loading the CRL files from disk causes OCSPResp.TRY_LATER until the files are loaded." +
-                "Will be fixed in AUT-2455 by creating a new class and mocking its methods.")
+        @Disabled("Loading the CRL files from disk causes OCSPResp.TRY_LATER until the files are loaded."
+                + "Will be fixed in AUT-2455 by creating a new class and mocking its methods.")
         @SneakyThrows
         @Test
         void whenValidOcspRequest_SuccessfulOcspResponseReturned() {
@@ -294,12 +340,18 @@ class OcspServiceTest {
                     .addRequest(new CertificateID(sha1DigestCalculator, ISSUER_CERTIFICATE, BigInteger.ONE))
                     .setRequestExtensions(createNonceExtension(NONCE))
                     .build();
-            when(keyService.getOcspSigningCert()).thenReturn(SIGNING_CERTIFICATE);
-            when(keyService.getOcspSigningKey()).thenReturn(SIGNING_KEY);
+            when(keyService
+                    .getOcspSigningCert())
+                    .thenReturn(SIGNING_CERTIFICATE);
+            when(keyService
+                    .getOcspSigningKey())
+                    .thenReturn(SIGNING_KEY);
 
-            OCSPResp ocspResponse = ocspService.handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
+            OCSPResp ocspResponse = ocspService
+                    .handleRequest(ocspRequest, ISSUER_CERTIFICATE, CHAIN_NAME);
 
-            OCSPRespAssert.assertThat(ocspResponse)
+            OCSPRespAssert
+                    .assertThat(ocspResponse)
                     .hasResponseStatus(OCSPResp.SUCCESSFUL)
                     .hasCertificateStatusGood()
                     .hasSigningCertificateSubject(SIGNING_CERTIFICATE_DN)

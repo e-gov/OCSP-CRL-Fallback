@@ -1,9 +1,8 @@
 package ee.ria.ocspcrl.exception;
 
+import java.util.Date;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
-import java.util.Date;
 
 @AllArgsConstructor
 public class CertificateRevokedException extends RuntimeException {

@@ -1,5 +1,7 @@
 package ee.ria.ocspcrl.config.oscp;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import lombok.NonNull;
 import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.springframework.http.HttpInputMessage;
@@ -10,21 +12,20 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 @Component
 public class OcspRespHttpMessageConverter extends AbstractHttpMessageConverter<OCSPResp> {
 
     public static final String OCSP_RESPONSE_CONTENT_TYPE = "application/ocsp-response";
 
     public OcspRespHttpMessageConverter() {
-        super(MediaType.valueOf(OCSP_RESPONSE_CONTENT_TYPE));
+        super(MediaType
+                .valueOf(OCSP_RESPONSE_CONTENT_TYPE));
     }
 
     @Override
     protected boolean supports(@NonNull Class<?> clazz) {
-        return OCSPResp.class.isAssignableFrom(clazz);
+        return OCSPResp.class
+                .isAssignableFrom(clazz);
     }
 
     @Override
@@ -39,12 +40,15 @@ public class OcspRespHttpMessageConverter extends AbstractHttpMessageConverter<O
             throws IOException, HttpMessageNotWritableException {
         byte[] encoded;
         try {
-            encoded = ocspResp.getEncoded();
+            encoded = ocspResp
+                    .getEncoded();
         } catch (IOException e) {
             throw new HttpMessageNotWritableException("Failed to encode OCSP response", e);
         }
-        try(OutputStream responseBodyStream = outputMessage.getBody()) {
-            responseBodyStream.write(encoded);
+        try (OutputStream responseBodyStream = outputMessage
+                .getBody()) {
+            responseBodyStream
+                    .write(encoded);
         }
     }
 

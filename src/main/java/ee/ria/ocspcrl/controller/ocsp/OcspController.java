@@ -1,5 +1,11 @@
 package ee.ria.ocspcrl.controller.ocsp;
 
+import static ee.ria.ocspcrl.config.oscp.OcspReqHttpMessageConverter.OCSP_REQUEST_CONTENT_TYPE;
+import static ee.ria.ocspcrl.config.oscp.OcspRespHttpMessageConverter.OCSP_RESPONSE_CONTENT_TYPE;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
 import ee.ria.ocspcrl.service.OcspService;
@@ -13,12 +19,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import static ee.ria.ocspcrl.config.oscp.OcspReqHttpMessageConverter.OCSP_REQUEST_CONTENT_TYPE;
-import static ee.ria.ocspcrl.config.oscp.OcspRespHttpMessageConverter.OCSP_RESPONSE_CONTENT_TYPE;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.HttpStatus.OK;
-
 @RequiredArgsConstructor
 @RestController
 @Slf4j
@@ -29,18 +29,29 @@ public class OcspController {
 
     @PostMapping(path = "/ocsp/{chainId}", consumes = OCSP_REQUEST_CONTENT_TYPE, produces = OCSP_RESPONSE_CONTENT_TYPE)
     public ResponseEntity<?> handleOcspRequest(@PathVariable String chainId, @RequestBody OCSPReq ocspReq) {
-        CertificateChain certificateChain = crlConfigurationProperties.certificateChain(chainId);
+        CertificateChain certificateChain = crlConfigurationProperties
+                .certificateChain(chainId);
         if (certificateChain == null) {
-            log.info("Certificate chain \"{}\" not configured", chainId);
-            return ResponseEntity.status(NOT_FOUND).build();
+            log
+                    .info("Certificate chain \"{}\" not configured", chainId);
+            return ResponseEntity
+                    .status(NOT_FOUND)
+                    .build();
         }
         try {
-            OCSPResp result = ocspService.handleRequest(ocspReq,
-                    certificateChain.issuerCertificate(), certificateChain.name());
-            return new ResponseEntity<>(result.getEncoded(), OK);
+            OCSPResp result = ocspService
+                    .handleRequest(ocspReq, certificateChain
+                            .issuerCertificate(),
+                            certificateChain
+                                    .name());
+            return new ResponseEntity<>(result
+                    .getEncoded(), OK);
         } catch (Exception e) {
-            log.error("Error handling OCSP request", e);
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).build();
+            log
+                    .error("Error handling OCSP request", e);
+            return ResponseEntity
+                    .status(INTERNAL_SERVER_ERROR)
+                    .build();
         }
     }
 

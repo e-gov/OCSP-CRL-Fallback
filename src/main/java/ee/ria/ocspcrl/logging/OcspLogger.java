@@ -1,7 +1,11 @@
 package ee.ria.ocspcrl.logging;
 
+import static net.logstash.logback.marker.Markers.appendFields;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import ee.ria.ocspcrl.mapper.OcspMapper;
+import java.math.BigInteger;
+import java.util.Date;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -13,11 +17,6 @@ import org.bouncycastle.cert.ocsp.CertificateStatus;
 import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.springframework.stereotype.Component;
 
-import java.math.BigInteger;
-import java.util.Date;
-
-import static net.logstash.logback.marker.Markers.appendFields;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -25,14 +24,12 @@ public class OcspLogger {
 
     private final OcspMapper ocspMapper;
 
-    public void logSuccessfulResponse(X509CertificateHolder issuerCertificate,
-                                      CertificateID certificateId,
-                                      X509CRLHolder crlHolder,
-                                      CertificateStatus certificateStatus,
-                                      OCSPResp ocspResp) {
-        OcspResponseContext ocspResponseContext = ocspMapper.toOcspContext(issuerCertificate, certificateId,
-                crlHolder, certificateStatus, ocspResp);
-        log.info(appendFields(ocspResponseContext), "Successful OCSP response");
+    public void logSuccessfulResponse(X509CertificateHolder issuerCertificate, CertificateID certificateId,
+            X509CRLHolder crlHolder, CertificateStatus certificateStatus, OCSPResp ocspResp) {
+        OcspResponseContext ocspResponseContext = ocspMapper
+                .toOcspContext(issuerCertificate, certificateId, crlHolder, certificateStatus, ocspResp);
+        log
+                .info(appendFields(ocspResponseContext), "Successful OCSP response");
     }
 
     @Builder
