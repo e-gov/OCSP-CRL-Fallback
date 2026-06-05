@@ -3,12 +3,11 @@ package ee.ria.ocspcrl.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.gateway.CrlGateway;
+import java.io.IOException;
+import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.nio.file.Path;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +19,7 @@ public class FileService {
     private final CrlConfigurationProperties properties;
 
     public void serializeToFile(String chainName, CrlGateway.NewCrlFileResponse response, FileType fileType)
-            throws IOException {
+        throws IOException {
         Path crlPath = getCrlTargetFilePath(chainName, fileType);
         Path headerPath = getHeadersTargetFilePath(chainName, fileType);
 
@@ -28,8 +27,7 @@ public class FileService {
         serializeToFile(headerPath, response.crlHeaders());
     }
 
-    public CrlGateway.CrlHeaders deserializeCrlHeadersFromFile(String chainName, FileType fileType)
-            throws IOException {
+    public CrlGateway.CrlHeaders deserializeCrlHeadersFromFile(String chainName, FileType fileType) throws IOException {
         Path filePath = getHeadersTargetFilePath(chainName, fileType);
         if (filePath == null) {
             return null;
@@ -130,6 +128,7 @@ public class FileService {
     }
 
     public enum FileType {
-        TEMP, VALIDATED
+        TEMP,
+        VALIDATED,
     }
 }

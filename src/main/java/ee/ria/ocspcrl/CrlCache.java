@@ -1,11 +1,10 @@
 package ee.ria.ocspcrl;
 
 import ee.ria.ocspcrl.gateway.CrlGateway;
-import org.bouncycastle.cert.X509CRLHolder;
-import org.springframework.stereotype.Component;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.bouncycastle.cert.X509CRLHolder;
+import org.springframework.stereotype.Component;
 
 @Component
 public class CrlCache {
@@ -30,6 +29,5 @@ public class CrlCache {
         crlInfoByChainName.put(chainName, new CrlInfo(crlHeaders, crlHolder));
     }
 
-    public record CrlInfo(CrlGateway.CrlHeaders crlHeaders, X509CRLHolder crlHolder) {
-    }
+    public record CrlInfo(CrlGateway.CrlHeaders crlHeaders, X509CRLHolder crlHolder) {}
 }

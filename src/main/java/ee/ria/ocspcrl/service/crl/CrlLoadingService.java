@@ -5,6 +5,8 @@ import ee.ria.ocspcrl.FilesLoadedHealthIndicator;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.gateway.CrlGateway;
 import ee.ria.ocspcrl.service.FileService;
+import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.cert.X509CRLHolder;
@@ -12,9 +14,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.nio.file.NoSuchFileException;
 
 @Slf4j
 @Service
@@ -54,9 +53,7 @@ public class CrlLoadingService {
                 crlCache.updateCrlAndHeaders(chain.name(), crlInfo.crlHolder(), crlInfo.crlHeaders());
                 log.info("Loaded CRL for {}", chain.name());
             } catch (Exception e) {
-                log.atError()
-                        .setCause(e)
-                        .log("Failed to load CRL for {}", chain.name());
+                log.atError().setCause(e).log("Failed to load CRL for {}", chain.name());
             }
         }
         log.info("Loading CRLs from disk completed");

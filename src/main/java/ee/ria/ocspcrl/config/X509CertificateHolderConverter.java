@@ -1,5 +1,8 @@
 package ee.ria.ocspcrl.config;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import lombok.RequiredArgsConstructor;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.openssl.PEMParser;
@@ -10,10 +13,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.lang.Contract;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UncheckedIOException;
 
 @Component
 @ConfigurationPropertiesBinding
@@ -39,5 +38,4 @@ public class X509CertificateHolderConverter implements Converter<String, X509Cer
             throw new UncheckedIOException(e);
         }
     }
-
 }

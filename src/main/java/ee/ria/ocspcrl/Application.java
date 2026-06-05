@@ -15,5 +15,4 @@ public class Application {
         ElasticApmAttacher.attach();
         SpringApplication.run(Application.class, args);
     }
-
 }
