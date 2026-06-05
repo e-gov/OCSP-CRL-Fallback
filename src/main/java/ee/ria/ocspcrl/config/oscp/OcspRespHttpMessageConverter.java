@@ -27,8 +27,7 @@ public class OcspRespHttpMessageConverter extends AbstractHttpMessageConverter<O
     }
 
     @Override
-    @NonNull
-    protected OCSPResp readInternal(@NonNull Class<? extends OCSPResp> clazz, @NonNull HttpInputMessage inputMessage)
+    @NonNull protected OCSPResp readInternal(@NonNull Class<? extends OCSPResp> clazz, @NonNull HttpInputMessage inputMessage)
             throws HttpMessageNotReadableException {
         throw new HttpMessageNotReadableException("Deserializing OCSP responses is not implemented", inputMessage);
     }

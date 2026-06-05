@@ -29,8 +29,7 @@ public class OcspReqHttpMessageConverter extends AbstractHttpMessageConverter<OC
     }
 
     @Override
-    @NonNull
-    protected OCSPReq readInternal(@NonNull Class<? extends OCSPReq> clazz, @NonNull HttpInputMessage inputMessage)
+    @NonNull protected OCSPReq readInternal(@NonNull Class<? extends OCSPReq> clazz, @NonNull HttpInputMessage inputMessage)
             throws IOException, HttpMessageNotReadableException {
         try (InputStream requestBodyStream = inputMessage.getBody()) {
             byte[] bytes = requestBodyStream.readNBytes(Math.toIntExact(MAX_BODY_SIZE.toBytes()));
