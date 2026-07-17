@@ -137,7 +137,7 @@ public class CrlDownloadServiceTest {
 
         assertThatExceptionOfType(IOException.class)
                 .isThrownBy(() -> crlDownloadService.downloadCrl(certificateChain))
-                .withMessage("corrupted stream - out of bounds length found: 104 >= 25");
+                .withMessage("corrupted stream - out of bounds length found: 104 > 25");
 
         verify(fileService).serializeToFile(eq(CrlDownloadUtils.TEST_CHAIN_NAME), eq(response), eq(FileService.FileType.TEMP));
     }
@@ -149,7 +149,7 @@ public class CrlDownloadServiceTest {
 
         assertThatExceptionOfType(IOException.class)
                 .isThrownBy(() -> crlDownloadService.downloadCrl(certificateChain))
-                .withMessage("corrupted stream - out of bounds length found: 104 >= 25");
+                .withMessage("corrupted stream - out of bounds length found: 104 > 25");
     }
 
     @Test
