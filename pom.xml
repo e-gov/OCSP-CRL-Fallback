@@ -35,6 +35,10 @@
         <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
         <rest-assured.version>6.0.1</rest-assured.version>
         <wiremock.version>3.13.2</wiremock.version>
+
+        <!-- Force newer versions than set by Spring Boot to mitigate CVE-s -->
+        <log4j2.version>2.26.1</log4j2.version>
+        <tomcat.version>11.0.24</tomcat.version>
     </properties>
 
     <dependencies><!-- Ordered by scope, groupId, artifactId. -->
