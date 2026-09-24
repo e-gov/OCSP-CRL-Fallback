@@ -46,6 +46,37 @@ Build and run the application:
 * https://localhost:14443/ - OCSP service
 * https://localhost:14443/actuator - maintenance endpoints
 
+### Triggering a CRL reload
+
+`POST /actuator/crlreload` downloads CRLs immediately instead of waiting for the next `crl-loading-interval` tick.
+Not exposed by default - add `crlreload` to `management.endpoints.web.exposure.include`.
+
+```shell
+curl -k -X POST https://localhost:14443/actuator/crlreload \
+     -H 'Content-Type: application/json' -H 'Accept: application/json' \
+     -d '{"chain":"test_esteid2018"}'   # -d '{}' reloads all chains; unknown chain gives 404
+```
+
+The response holds one result per chain.
+
+| Result | Meaning |
+|--------|---------|
+| `UPDATED` | The downloaded CRL was validated and is now in use. |
+| `NOT_MODIFIED` | The distribution point answered 304 Not Modified, the previous CRL remains in use. |
+| `REJECTED` | A CRL was downloaded but validation refused it. The previous CRL remains in use. |
+| `BUSY` | A download for this chain was already running, so this request did nothing. |
+| `FAILURE` | The download or the file handling threw; `error` holds the exception type only. |
+| `UNKNOWN_CHAIN` | No chain with that name is configured. |
+
+The HTTP status summarises the whole response:
+
+| Status | When |
+|--------|------|
+| 200 | Every chain reported `UPDATED`, `NOT_MODIFIED` or `REJECTED`. |
+| 404 | The requested chain name is not configured. |
+| 409 | At least one chain reported `BUSY` and none reported `FAILURE`. |
+| 500 | At least one chain reported `FAILURE`. |
+
 ## Configuration
 
 ### TLS Certificate and Key

@@ -12,6 +12,10 @@ import org.bouncycastle.cert.X509CRLHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 @Service
@@ -23,7 +27,22 @@ public class CrlDownloadService {
     private final CrlValidationService crlValidationService;
     private final CrlCache crlCache;
 
-    public void downloadCrl(CertificateChain chain) throws IOException {
+    private final Map<String, Lock> downloadLocks = new ConcurrentHashMap<>();
+
+    public CrlDownloadResult downloadCrl(CertificateChain chain) throws IOException {
+        Lock lock = downloadLocks.computeIfAbsent(chain.name(), name -> new ReentrantLock());
+        if (!lock.tryLock()) {
+            log.info("CRL download already in progress, skipping: {}", chain.name());
+            return CrlDownloadResult.BUSY;
+        }
+        try {
+            return doDownloadCrl(chain);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private CrlDownloadResult doDownloadCrl(CertificateChain chain) throws IOException {
         CrlDownload crl = chain.crlDownload();
         CrlGateway gateway = crlGatewayFactory.create(crl);
         log.info("Downloading file: {}", crl.url());
@@ -32,7 +51,7 @@ public class CrlDownloadService {
 
         if (response instanceof CrlGateway.CrlFileNotModifiedResponse) {
             log.info("CRL has no modifications: {}", chain.name());
-            return;
+            return CrlDownloadResult.NOT_MODIFIED;
         }
 
         if (!(response instanceof CrlGateway.NewCrlFileResponse newCrlFileResponse)) {
@@ -49,7 +68,7 @@ public class CrlDownloadService {
         X509CRLHolder crlHolder = new X509CRLHolder(newCrlFileResponse.crl());
         if (!crlValidationService.shouldUse(chain.name(), crlHolder)) {
             log.debug("Aborted downloading CRL for chain {}", chain.name());
-            return;
+            return CrlDownloadResult.REJECTED;
         }
 
         crlCache.updateCrlAndHeaders(chain.name(), crlHolder, newCrlFileResponse.crlHeaders());
@@ -61,6 +80,8 @@ public class CrlDownloadService {
         log.info("Moving headers from tmp to validated directory: {}", chain.name());
         fileService.moveHeaders(chain.name());
         log.info("Moved headers to validated directory: {}", chain.name());
+
+        return CrlDownloadResult.UPDATED;
     }
 
     private CrlGateway.CrlHeaders getRequestHeaders(String chainName) {
@@ -79,6 +100,13 @@ public class CrlDownloadService {
             log.error("Could not read headers from local file for chain {}", chainName);
             return null;
         }
+    }
+
+    public enum CrlDownloadResult {
+        UPDATED,
+        NOT_MODIFIED,
+        REJECTED,
+        BUSY
     }
 
 }
