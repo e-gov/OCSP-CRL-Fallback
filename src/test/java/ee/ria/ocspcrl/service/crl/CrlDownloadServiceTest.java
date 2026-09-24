@@ -31,6 +31,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
+import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.NOT_MODIFIED;
+import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.REJECTED;
+import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.UPDATED;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -104,8 +108,9 @@ public class CrlDownloadServiceTest {
     void downloadCrl_notModifiedResponse_doesNotSerializeToFile() throws Exception {
         when(gateway.downloadFile(any())).thenReturn(new CrlGateway.CrlFileNotModifiedResponse(null));
 
-        crlDownloadService.downloadCrl(certificateChain);
+        CrlDownloadService.CrlDownloadResult result = crlDownloadService.downloadCrl(certificateChain);
 
+        assertThat(result).isEqualTo(NOT_MODIFIED);
         verify(fileService, never()).serializeToFile(any(), any(), any());
     }
 
@@ -169,8 +174,9 @@ public class CrlDownloadServiceTest {
         when(gateway.downloadFile(any())).thenReturn(response);
         when(crlValidationService.shouldUse(any(), any())).thenReturn(false);
 
-        crlDownloadService.downloadCrl(certificateChain);
+        CrlDownloadService.CrlDownloadResult result = crlDownloadService.downloadCrl(certificateChain);
 
+        assertThat(result).isEqualTo(REJECTED);
         verify(crlCache, never()).updateCrlAndHeaders(any(), any(), any());
     }
 
@@ -180,8 +186,9 @@ public class CrlDownloadServiceTest {
         when(gateway.downloadFile(any())).thenReturn(response);
         when(crlValidationService.shouldUse(any(), any())).thenReturn(true);
 
-        crlDownloadService.downloadCrl(certificateChain);
+        CrlDownloadService.CrlDownloadResult result = crlDownloadService.downloadCrl(certificateChain);
 
+        assertThat(result).isEqualTo(UPDATED);
         verify(fileService).moveValidCrl(eq(CrlDownloadUtils.TEST_CHAIN_NAME));
         verify(fileService).moveHeaders(eq(CrlDownloadUtils.TEST_CHAIN_NAME));
     }

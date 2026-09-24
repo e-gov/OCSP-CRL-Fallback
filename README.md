@@ -46,6 +46,34 @@ Build and run the application:
 * https://localhost:14443/ - OCSP service
 * https://localhost:14443/actuator - maintenance endpoints
 
+### Triggering a CRL reload
+
+`POST /actuator/crlreload` downloads CRLs immediately instead of waiting for the next `crl-loading-interval` tick.
+Not exposed by default - add `crlreload` to `management.endpoints.web.exposure.include`.
+
+```shell
+curl -k -X POST https://localhost:14443/actuator/crlreload \
+     -H 'Content-Type: application/json' -H 'Accept: application/json' \
+     -d '{"chain":"test_esteid2018"}'   # -d '{}' reloads all chains; unknown chain gives 404
+```
+
+The response holds one result per chain, e.g. `{"test_esteid2018":"UPDATED"}`:
+
+| Result | Meaning |
+|--------|---------|
+| `UPDATED` | The downloaded CRL was validated and is now in use. |
+| `NOT_MODIFIED` | The distribution point answered 304 Not Modified, the previous CRL remains in use. |
+| `REJECTED` | A CRL was downloaded but validation refused it. The previous CRL remains in use. |
+| `FAILED: <reason>` | The download or the file handling threw. |
+
+The HTTP status is 200 when no chain failed, 500 when at least one chain reports `FAILED`, and 404
+for an unknown chain name.
+
+A reload runs on the request thread and is not coordinated with the scheduled download of the same
+chain (or with a second concurrent reload). Overlapping runs share the same temporary file paths,
+so they can pair a CRL with the other run's headers, or fail the second file move. Avoid triggering
+a reload for a chain whose scheduled download is due.
+
 ## Configuration
 
 ### TLS Certificate and Key

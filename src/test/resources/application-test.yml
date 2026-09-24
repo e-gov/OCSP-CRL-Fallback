@@ -24,6 +24,12 @@ spring:
           truststore:
             certificate: /etc/ocspcrl/secrets/eid/testEEGovCA2025.crt.pem
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: configprops, env, health, info, prometheus, crlreload
+
 ocsp-crl-fallback:
   crl-loading-interval: 30s
   certificate-chains:
