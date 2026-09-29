@@ -30,7 +30,13 @@ import java.security.spec.ECGenParameterSpec;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.BUSY;
 import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.NOT_MODIFIED;
 import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.REJECTED;
 import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.UPDATED;
@@ -39,6 +45,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOf
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -191,6 +198,63 @@ public class CrlDownloadServiceTest {
         assertThat(result).isEqualTo(UPDATED);
         verify(fileService).moveValidCrl(eq(CrlDownloadUtils.TEST_CHAIN_NAME));
         verify(fileService).moveHeaders(eq(CrlDownloadUtils.TEST_CHAIN_NAME));
+    }
+
+    @Test
+    void downloadCrl_sameChainAlreadyDownloading_returnsBusyWithoutDownloadingAgain() throws Exception {
+        CountDownLatch downloadStarted = new CountDownLatch(1);
+        CountDownLatch releaseDownload = new CountDownLatch(1);
+        when(gateway.downloadFile(any())).thenAnswer(invocation -> {
+            downloadStarted.countDown();
+            assertThat(releaseDownload.await(5, TimeUnit.SECONDS)).isTrue();
+            return new CrlGateway.NewCrlFileResponse(VALID_CRL_CONTENT, null);
+        });
+        when(crlValidationService.shouldUse(any(), any())).thenReturn(true);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<CrlDownloadService.CrlDownloadResult> firstDownload =
+                    executor.submit(() -> crlDownloadService.downloadCrl(certificateChain));
+            assertThat(downloadStarted.await(5, TimeUnit.SECONDS)).isTrue();
+
+            CrlDownloadService.CrlDownloadResult secondDownload = crlDownloadService.downloadCrl(certificateChain);
+
+            releaseDownload.countDown();
+            assertThat(secondDownload).isEqualTo(BUSY);
+            assertThat(firstDownload.get(5, TimeUnit.SECONDS)).isEqualTo(UPDATED);
+        } finally {
+            releaseDownload.countDown();
+            executor.shutdownNow();
+        }
+
+        verify(gateway, times(1)).downloadFile(any());
+        verify(fileService, times(1)).serializeToFile(any(), any(), any());
+    }
+
+    @Test
+    void downloadCrl_differentChains_areNotBlockedByEachOther() throws Exception {
+        CrlConfigurationProperties.CertificateChain otherChain = new CrlConfigurationProperties.CertificateChain(
+                "test_esteid2222", null, CrlDownloadUtils.createCrlDownload());
+        // Both answers wait for the other chain to start, so a single global lock would deadlock here.
+        CountDownLatch bothStarted = new CountDownLatch(2);
+        when(gateway.downloadFile(any())).thenAnswer(invocation -> {
+            bothStarted.countDown();
+            assertThat(bothStarted.await(5, TimeUnit.SECONDS)).isTrue();
+            return new CrlGateway.CrlFileNotModifiedResponse(null);
+        });
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<CrlDownloadService.CrlDownloadResult> first =
+                    executor.submit(() -> crlDownloadService.downloadCrl(certificateChain));
+            Future<CrlDownloadService.CrlDownloadResult> second =
+                    executor.submit(() -> crlDownloadService.downloadCrl(otherChain));
+
+            assertThat(first.get(10, TimeUnit.SECONDS)).isEqualTo(NOT_MODIFIED);
+            assertThat(second.get(10, TimeUnit.SECONDS)).isEqualTo(NOT_MODIFIED);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     public record InvalidCrlResponse() implements CrlGateway.CrlResponse {}

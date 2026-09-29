@@ -57,22 +57,26 @@ curl -k -X POST https://localhost:14443/actuator/crlreload \
      -d '{"chain":"test_esteid2018"}'   # -d '{}' reloads all chains; unknown chain gives 404
 ```
 
-The response holds one result per chain, e.g. `{"test_esteid2018":"UPDATED"}`:
+The response holds one result per chain.
 
 | Result | Meaning |
 |--------|---------|
 | `UPDATED` | The downloaded CRL was validated and is now in use. |
 | `NOT_MODIFIED` | The distribution point answered 304 Not Modified, the previous CRL remains in use. |
 | `REJECTED` | A CRL was downloaded but validation refused it. The previous CRL remains in use. |
-| `FAILED: <reason>` | The download or the file handling threw. |
+| `BUSY` | A download for this chain was already running, so this request did nothing. |
+| `FAILURE` | The download or the file handling threw; `error` holds the exception type and message. |
+| `UNKNOWN_CHAIN` | No chain with that name is configured. |
 
-The HTTP status is 200 when no chain failed, 500 when at least one chain reports `FAILED`, and 404
-for an unknown chain name.
+The HTTP status summarises the whole response:
 
-A reload runs on the request thread and is not coordinated with the scheduled download of the same
-chain (or with a second concurrent reload). Overlapping runs share the same temporary file paths,
-so they can pair a CRL with the other run's headers, or fail the second file move. Avoid triggering
-a reload for a chain whose scheduled download is due.
+| Status | When |
+|--------|------|
+| 200 | Every chain reported `UPDATED`, `NOT_MODIFIED` or `REJECTED`. |
+| 400 | The requested chain name is malformed (it must match `\w[\w\-.]*`). |
+| 404 | The requested chain name is not configured. |
+| 409 | At least one chain reported `BUSY` and none reported `FAILURE`. |
+| 500 | At least one chain reported `FAILURE`. |
 
 ## Configuration
 

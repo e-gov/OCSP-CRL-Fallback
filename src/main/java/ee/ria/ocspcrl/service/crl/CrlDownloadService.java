@@ -12,6 +12,10 @@ import org.bouncycastle.cert.X509CRLHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 @Service
@@ -23,7 +27,22 @@ public class CrlDownloadService {
     private final CrlValidationService crlValidationService;
     private final CrlCache crlCache;
 
+    private final Map<String, Lock> downloadLocks = new ConcurrentHashMap<>();
+
     public CrlDownloadResult downloadCrl(CertificateChain chain) throws IOException {
+        Lock lock = downloadLocks.computeIfAbsent(chain.name(), name -> new ReentrantLock());
+        if (!lock.tryLock()) {
+            log.info("CRL download already in progress, skipping: {}", chain.name());
+            return CrlDownloadResult.BUSY;
+        }
+        try {
+            return doDownloadCrl(chain);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private CrlDownloadResult doDownloadCrl(CertificateChain chain) throws IOException {
         CrlDownload crl = chain.crlDownload();
         CrlGateway gateway = crlGatewayFactory.create(crl);
         log.info("Downloading file: {}", crl.url());
@@ -86,7 +105,11 @@ public class CrlDownloadService {
     public enum CrlDownloadResult {
         UPDATED,
         NOT_MODIFIED,
-        REJECTED
+        REJECTED,
+        BUSY,
+        // Observed by the reload endpoint rather than by a download, so downloadCrl never returns these.
+        FAILURE,
+        UNKNOWN_CHAIN
     }
 
 }
