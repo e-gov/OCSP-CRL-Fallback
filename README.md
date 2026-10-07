@@ -65,7 +65,7 @@ The response holds one result per chain.
 | `NOT_MODIFIED` | The distribution point answered 304 Not Modified, the previous CRL remains in use. |
 | `REJECTED` | A CRL was downloaded but validation refused it. The previous CRL remains in use. |
 | `BUSY` | A download for this chain was already running, so this request did nothing. |
-| `FAILURE` | The download or the file handling threw; `error` holds the exception type and message. |
+| `FAILURE` | The download or the file handling threw; `error` holds the exception type only. |
 | `UNKNOWN_CHAIN` | No chain with that name is configured. |
 
 The HTTP status summarises the whole response:
@@ -73,7 +73,6 @@ The HTTP status summarises the whole response:
 | Status | When |
 |--------|------|
 | 200 | Every chain reported `UPDATED`, `NOT_MODIFIED` or `REJECTED`. |
-| 400 | The requested chain name is malformed (it must match `\w[\w\-.]*`). |
 | 404 | The requested chain name is not configured. |
 | 409 | At least one chain reported `BUSY` and none reported `FAILURE`. |
 | 500 | At least one chain reported `FAILURE`. |

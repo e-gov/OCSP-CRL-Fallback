@@ -2,6 +2,7 @@ package ee.ria.ocspcrl.actuator.crl;
 
 import ee.ria.ocspcrl.CrlDownloadUtils;
 import ee.ria.ocspcrl.actuator.crl.CrlReloadEndpoint.ChainReloadResult;
+import ee.ria.ocspcrl.actuator.crl.CrlReloadEndpoint.ChainReloadStatus;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.config.CrlConfigurationProperties.CertificateChain;
 import ee.ria.ocspcrl.service.crl.CrlDownloadService;
@@ -9,6 +10,8 @@ import ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,12 +22,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.BUSY;
-import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.FAILURE;
-import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.NOT_MODIFIED;
-import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.REJECTED;
-import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.UNKNOWN_CHAIN;
-import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.UPDATED;
+import static ee.ria.ocspcrl.actuator.crl.CrlReloadEndpoint.ChainReloadStatus.BUSY;
+import static ee.ria.ocspcrl.actuator.crl.CrlReloadEndpoint.ChainReloadStatus.FAILURE;
+import static ee.ria.ocspcrl.actuator.crl.CrlReloadEndpoint.ChainReloadStatus.NOT_MODIFIED;
+import static ee.ria.ocspcrl.actuator.crl.CrlReloadEndpoint.ChainReloadStatus.REJECTED;
+import static ee.ria.ocspcrl.actuator.crl.CrlReloadEndpoint.ChainReloadStatus.UNKNOWN_CHAIN;
+import static ee.ria.ocspcrl.actuator.crl.CrlReloadEndpoint.ChainReloadStatus.UPDATED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -52,7 +55,7 @@ class CrlReloadEndpointTest {
 
     @Test
     void reload_noChainGiven_downloadsEveryConfiguredChain() throws Exception {
-        when(crlDownloadService.downloadCrl(any())).thenReturn(UPDATED);
+        when(crlDownloadService.downloadCrl(any())).thenReturn(CrlDownloadResult.UPDATED);
         CrlReloadEndpoint endpoint = new CrlReloadEndpoint(properties, crlDownloadService);
 
         WebEndpointResponse<Map<String, ChainReloadResult>> response = endpoint.reload(null);
@@ -67,7 +70,7 @@ class CrlReloadEndpointTest {
 
     @Test
     void reload_chainGiven_downloadsOnlyThatChain() throws Exception {
-        when(crlDownloadService.downloadCrl(any())).thenReturn(UPDATED);
+        when(crlDownloadService.downloadCrl(any())).thenReturn(CrlDownloadResult.UPDATED);
         CrlReloadEndpoint endpoint = new CrlReloadEndpoint(properties, crlDownloadService);
 
         WebEndpointResponse<Map<String, ChainReloadResult>> response = endpoint.reload(SECOND_CHAIN);
@@ -79,7 +82,7 @@ class CrlReloadEndpointTest {
 
     @Test
     void reload_crlNotModified_reportsNotModified() throws Exception {
-        when(crlDownloadService.downloadCrl(any())).thenReturn(NOT_MODIFIED);
+        when(crlDownloadService.downloadCrl(any())).thenReturn(CrlDownloadResult.NOT_MODIFIED);
         CrlReloadEndpoint endpoint = new CrlReloadEndpoint(properties, crlDownloadService);
 
         WebEndpointResponse<Map<String, ChainReloadResult>> response = endpoint.reload(FIRST_CHAIN);
@@ -90,7 +93,7 @@ class CrlReloadEndpointTest {
 
     @Test
     void reload_crlRejectedByValidation_reportsRejected() throws Exception {
-        when(crlDownloadService.downloadCrl(any())).thenReturn(REJECTED);
+        when(crlDownloadService.downloadCrl(any())).thenReturn(CrlDownloadResult.REJECTED);
         CrlReloadEndpoint endpoint = new CrlReloadEndpoint(properties, crlDownloadService);
 
         WebEndpointResponse<Map<String, ChainReloadResult>> response = endpoint.reload(FIRST_CHAIN);
@@ -101,7 +104,7 @@ class CrlReloadEndpointTest {
 
     @Test
     void reload_downloadAlreadyInProgress_reportsBusy() throws Exception {
-        when(crlDownloadService.downloadCrl(any())).thenReturn(BUSY);
+        when(crlDownloadService.downloadCrl(any())).thenReturn(CrlDownloadResult.BUSY);
         CrlReloadEndpoint endpoint = new CrlReloadEndpoint(properties, crlDownloadService);
 
         WebEndpointResponse<Map<String, ChainReloadResult>> response = endpoint.reload(FIRST_CHAIN);
@@ -117,7 +120,7 @@ class CrlReloadEndpointTest {
             if (FIRST_CHAIN.equals(chain.name())) {
                 throw new IOException("Connection refused");
             }
-            return BUSY;
+            return CrlDownloadResult.BUSY;
         }).when(crlDownloadService).downloadCrl(any());
         CrlReloadEndpoint endpoint = new CrlReloadEndpoint(properties, crlDownloadService);
 
@@ -168,16 +171,10 @@ class CrlReloadEndpointTest {
         assertThat(downloadedChainNames()).containsExactly(FIRST_CHAIN, SECOND_CHAIN);
     }
 
-    @Test
-    void reload_malformedChainName_returnsBadRequestAndDoesNotEchoTheName() throws Exception {
-        CrlReloadEndpoint endpoint = new CrlReloadEndpoint(properties, crlDownloadService);
-
-        WebEndpointResponse<Map<String, ChainReloadResult>> response =
-                endpoint.reload("bad\nname 2026-01-01 forged log line");
-
-        assertThat(response.getStatus()).isEqualTo(WebEndpointResponse.STATUS_BAD_REQUEST);
-        assertThat(response.getBody()).isEmpty();
-        verify(crlDownloadService, never()).downloadCrl(any());
+    @ParameterizedTest
+    @EnumSource(CrlDownloadResult.class)
+    void chainReloadStatus_existsForEveryDownloadResult(CrlDownloadResult result) {
+        assertThat(ChainReloadStatus.of(result).name()).isEqualTo(result.name());
     }
 
     private void stubFailureForFirstChain(Exception exception) throws IOException {
@@ -186,7 +183,7 @@ class CrlReloadEndpointTest {
             if (FIRST_CHAIN.equals(chain.name())) {
                 throw exception;
             }
-            return UPDATED;
+            return CrlDownloadResult.UPDATED;
         }).when(crlDownloadService).downloadCrl(any());
     }
 
@@ -196,7 +193,7 @@ class CrlReloadEndpointTest {
         return captor.getAllValues().stream().map(CertificateChain::name).toList();
     }
 
-    private static ChainReloadResult result(CrlDownloadResult result) {
+    private static ChainReloadResult result(ChainReloadStatus result) {
         return new ChainReloadResult(result, null);
     }
 

@@ -106,10 +106,7 @@ public class CrlDownloadService {
         UPDATED,
         NOT_MODIFIED,
         REJECTED,
-        BUSY,
-        // Observed by the reload endpoint rather than by a download, so downloadCrl never returns these.
-        FAILURE,
-        UNKNOWN_CHAIN
+        BUSY
     }
 
 }

@@ -9,9 +9,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.io.IOException;
 
+import static ee.ria.ocspcrl.actuator.crl.CrlReloadEndpoint.ChainReloadStatus.FAILURE;
+import static ee.ria.ocspcrl.actuator.crl.CrlReloadEndpoint.ChainReloadStatus.UNKNOWN_CHAIN;
 import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.BUSY;
-import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.FAILURE;
-import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.UNKNOWN_CHAIN;
 import static ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult.UPDATED;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.aMapWithSize;

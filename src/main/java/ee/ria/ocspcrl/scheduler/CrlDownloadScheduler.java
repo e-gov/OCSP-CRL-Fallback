@@ -2,6 +2,7 @@ package ee.ria.ocspcrl.scheduler;
 
 import ee.ria.ocspcrl.config.CrlConfigurationProperties;
 import ee.ria.ocspcrl.service.crl.CrlDownloadService;
+import ee.ria.ocspcrl.service.crl.CrlDownloadService.CrlDownloadResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -30,7 +31,8 @@ public class CrlDownloadScheduler {
 
     private void handleDownload(CrlConfigurationProperties.CertificateChain chain) {
         try {
-            crlDownloadService.downloadCrl(chain);
+            CrlDownloadResult result = crlDownloadService.downloadCrl(chain);
+            log.info("Scheduled CRL download for {} finished: {}", chain.name(), result);
         } catch (Exception e) {
             log.atError()
                     .setCause(e)
